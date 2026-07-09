@@ -32,10 +32,12 @@ import {
   SIMPLE_INCOME_CATEGORIES,
   SIMPLE_EXPENSE_CATEGORIES,
 } from "@/lib/coa";
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 
 type TxMode = "sederhana" | "jurnal";
 type Jenis = "PEMASUKAN" | "PENGELUARAN";
 const TX_MODE_STORAGE_KEY = "kantongku:quickTxMode";
+const ONBOARDING_STORAGE_KEY = "kantongku_onboarding_done";
 
 function StatCard({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
   return (
@@ -52,6 +54,7 @@ export default function DashboardPage() {
   const { activeCompanyId, isLoading: companyLoading } = useActiveCompany();
   const utils = trpc.useContext();
   const [modalOpen, setModalOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [mode, setModeState] = useState<TxMode>("sederhana");
   const [date, setDate] = useState(toInputDate(new Date()));
   const [description, setDescription] = useState("");
@@ -84,6 +87,30 @@ export default function DashboardPage() {
     { companyId: activeCompanyId! },
     { enabled: !!activeCompanyId },
   );
+
+  // Show immediately for anyone who hasn't finished/skipped onboarding yet.
+  useEffect(() => {
+    const done = localStorage.getItem(ONBOARDING_STORAGE_KEY) === "true";
+    if (!done) setOnboardingOpen(true);
+  }, []);
+
+  // Fallback: nudge again once we know the company has no transactions,
+  // even if onboarding was already marked done (e.g. skipped early on).
+  useEffect(() => {
+    if (!data) return;
+    const done = localStorage.getItem(ONBOARDING_STORAGE_KEY) === "true";
+    if (done && data.latestEntries.length === 0) setOnboardingOpen(true);
+  }, [data]);
+
+  function closeOnboarding() {
+    localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
+    setOnboardingOpen(false);
+  }
+
+  function handleOnboardingStartTransaction() {
+    closeOnboarding();
+    setModalOpen(true);
+  }
 
   function resetForm() {
     setDescription("");
@@ -362,6 +389,12 @@ export default function DashboardPage() {
           </button>
         </form>
       </Modal>
+
+      <OnboardingModal
+        open={onboardingOpen}
+        onClose={closeOnboarding}
+        onStartTransaction={handleOnboardingStartTransaction}
+      />
     </div>
   );
 }
