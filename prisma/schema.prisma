@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  ASET
+  LIABILITAS
+  EKUITAS
+  PENDAPATAN
+  HPP
+  BEBAN
+}
+
+enum NormalBalance {
+  DEBIT
+  KREDIT
+}
+
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  password  String?
+  companies Company[]
+  createdAt DateTime  @default(now())
+}
+
+model Company {
+  id             String         @id @default(cuid())
+  name           String
+  address        String?
+  phone          String?
+  npwp           String?
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accounts       Account[]
+  journalEntries JournalEntry[]
+  periods        Period[]
+  createdAt      DateTime       @default(now())
+
+  @@index([userId])
+}
+
+model Account {
+  id            String        @id @default(cuid())
+  code          String
+  name          String
+  type          AccountType
+  normalBalance NormalBalance
+  isCashAccount Boolean       @default(false)
+  companyId     String
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  journalLines  JournalLine[]
+
+  @@unique([companyId, code])
+  @@index([companyId, code])
+}
+
+model JournalEntry {
+  id                String        @id @default(cuid())
+  date              DateTime
+  description       String
+  reference         String?
+  isSystemGenerated Boolean       @default(false)
+  companyId         String
+  company           Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lines             JournalLine[]
+  createdAt         DateTime      @default(now())
+
+  @@index([companyId, date])
+}
+
+model JournalLine {
+  id             String       @id @default(cuid())
+  journalEntryId String
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  accountId      String
+  account        Account      @relation(fields: [accountId], references: [id])
+  debit          Decimal      @default(0) @db.Decimal(18, 2)
+  credit         Decimal      @default(0) @db.Decimal(18, 2)
+
+  @@index([accountId])
+  @@index([journalEntryId])
+}
+
+model Period {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  isClosed  Boolean  @default(false)
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+}
