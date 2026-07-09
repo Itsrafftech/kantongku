@@ -2,6 +2,7 @@ import type { AccountType, NormalBalance } from "@prisma/client";
 
 export const RETAINED_EARNINGS_CODE = "303"; // Laba Ditahan — target of closing entries
 export const PRIVE_CODE = "302"; // Prive — owner withdrawals
+export const KAS_ACCOUNT_CODE = "101"; // Kas — default cash side for Mode Sederhana entries
 
 /**
  * Converts an account's own-normal-balance-signed amount into the sign
@@ -101,6 +102,7 @@ export const DEFAULT_COA: DefaultAccount[] = [
   { code: "401", name: "Penjualan", type: "PENDAPATAN", normalBalance: "KREDIT" },
   { code: "402", name: "Retur & Potongan Penjualan", type: "PENDAPATAN", normalBalance: "DEBIT" },
   { code: "403", name: "Pendapatan Lain-lain", type: "PENDAPATAN", normalBalance: "KREDIT" },
+  { code: "404", name: "Pendapatan Jasa", type: "PENDAPATAN", normalBalance: "KREDIT" },
 
   // 5xx — HPP
   { code: "501", name: "Harga Pokok Penjualan", type: "HPP", normalBalance: "DEBIT" },
@@ -116,4 +118,27 @@ export const DEFAULT_COA: DefaultAccount[] = [
   { code: "608", name: "Beban Administrasi & Umum", type: "BEBAN", normalBalance: "DEBIT" },
   { code: "609", name: "Beban Bunga Bank", type: "BEBAN", normalBalance: "DEBIT" },
   { code: "610", name: "Beban Lain-lain", type: "BEBAN", normalBalance: "DEBIT" },
+];
+
+export interface SimpleCategory {
+  label: string;
+  code: string;
+}
+
+/** Mode Sederhana categories — Pemasukan side, each mapped to its credited account. */
+export const SIMPLE_INCOME_CATEGORIES: SimpleCategory[] = [
+  { label: "Penjualan", code: "401" },
+  { label: "Pendapatan Jasa", code: "404" },
+  { label: "Pendapatan Lain", code: "403" },
+];
+
+/** Mode Sederhana categories — Pengeluaran side, each mapped to its debited account. */
+export const SIMPLE_EXPENSE_CATEGORIES: SimpleCategory[] = [
+  { label: "Pembelian Bahan Baku", code: "501" },
+  { label: "Gaji Karyawan", code: "601" },
+  { label: "Sewa", code: "602" },
+  { label: "Listrik & Air", code: "603" },
+  { label: "Transportasi", code: "606" },
+  { label: "Pemasaran", code: "607" },
+  { label: "Beban Lain", code: "610" },
 ];

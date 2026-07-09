@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import clsx from "clsx";
 import toast from "react-hot-toast";
 import {
   ResponsiveContainer,
@@ -26,6 +27,15 @@ import {
   type JournalLineInput,
 } from "@/components/JournalLineRows";
 import { formatDateID, formatRupiah, toInputDate } from "@/lib/format";
+import {
+  KAS_ACCOUNT_CODE,
+  SIMPLE_INCOME_CATEGORIES,
+  SIMPLE_EXPENSE_CATEGORIES,
+} from "@/lib/coa";
+
+type TxMode = "sederhana" | "jurnal";
+type Jenis = "PEMASUKAN" | "PENGELUARAN";
+const TX_MODE_STORAGE_KEY = "kantongku:quickTxMode";
 
 function StatCard({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
   return (
@@ -42,9 +52,29 @@ export default function DashboardPage() {
   const { activeCompanyId, isLoading: companyLoading } = useActiveCompany();
   const utils = trpc.useContext();
   const [modalOpen, setModalOpen] = useState(false);
+  const [mode, setModeState] = useState<TxMode>("sederhana");
   const [date, setDate] = useState(toInputDate(new Date()));
   const [description, setDescription] = useState("");
   const [lines, setLines] = useState<JournalLineInput[]>([emptyLine(), emptyLine()]);
+  const [jenis, setJenis] = useState<Jenis>("PEMASUKAN");
+  const [kategori, setKategori] = useState(SIMPLE_INCOME_CATEGORIES[0].code);
+  const [nominal, setNominal] = useState("");
+
+  // Remember last used mode for the rest of this browser session.
+  useEffect(() => {
+    const stored = sessionStorage.getItem(TX_MODE_STORAGE_KEY);
+    if (stored === "sederhana" || stored === "jurnal") setModeState(stored);
+  }, []);
+
+  function setMode(next: TxMode) {
+    setModeState(next);
+    sessionStorage.setItem(TX_MODE_STORAGE_KEY, next);
+  }
+
+  function handleJenisChange(next: Jenis) {
+    setJenis(next);
+    setKategori((next === "PEMASUKAN" ? SIMPLE_INCOME_CATEGORIES : SIMPLE_EXPENSE_CATEGORIES)[0].code);
+  }
 
   const { data, isLoading } = trpc.dashboard.summary.useQuery(
     { companyId: activeCompanyId! },
@@ -55,38 +85,88 @@ export default function DashboardPage() {
     { enabled: !!activeCompanyId },
   );
 
+  function resetForm() {
+    setDescription("");
+    setLines([emptyLine(), emptyLine()]);
+    setNominal("");
+    setJenis("PEMASUKAN");
+    setKategori(SIMPLE_INCOME_CATEGORIES[0].code);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    resetForm();
+  }
+
   const createEntry = trpc.journal.create.useMutation({
     onSuccess: () => {
       toast.success("Transaksi berhasil disimpan");
       utils.dashboard.summary.invalidate();
       setModalOpen(false);
-      setDescription("");
-      setLines([emptyLine(), emptyLine()]);
+      resetForm();
     },
     onError: (error) => toast.error(error.message || "Gagal menyimpan transaksi"),
   });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!activeCompanyId || !isLinesBalanced(lines)) {
-      toast.error("Total debit dan kredit harus seimbang");
+    if (!activeCompanyId) return;
+
+    if (mode === "jurnal") {
+      if (!isLinesBalanced(lines)) {
+        toast.error("Total debit dan kredit harus seimbang");
+        return;
+      }
+      createEntry.mutate({
+        companyId: activeCompanyId,
+        date: new Date(date),
+        description,
+        lines: lines
+          .filter((l) => l.accountId)
+          .map((l) => ({
+            accountId: l.accountId,
+            debit: parseFloat(l.debit) || 0,
+            credit: parseFloat(l.credit) || 0,
+          })),
+      });
       return;
     }
+
+    // Mode Sederhana: build the double-entry journal automatically.
+    const amount = parseFloat(nominal) || 0;
+    if (amount <= 0) {
+      toast.error("Nominal harus lebih dari 0");
+      return;
+    }
+    const kasAccount = accounts?.find((a) => a.code === KAS_ACCOUNT_CODE);
+    const categoryAccount = accounts?.find((a) => a.code === kategori);
+    if (!kasAccount || !categoryAccount) {
+      toast.error("Akun untuk kategori ini belum tersedia. Tambahkan di Daftar Akun.");
+      return;
+    }
+
     createEntry.mutate({
       companyId: activeCompanyId,
       date: new Date(date),
       description,
-      lines: lines
-        .filter((l) => l.accountId)
-        .map((l) => ({
-          accountId: l.accountId,
-          debit: parseFloat(l.debit) || 0,
-          credit: parseFloat(l.credit) || 0,
-        })),
+      lines:
+        jenis === "PEMASUKAN"
+          ? [
+              { accountId: kasAccount.id, debit: amount, credit: 0 },
+              { accountId: categoryAccount.id, debit: 0, credit: amount },
+            ]
+          : [
+              { accountId: categoryAccount.id, debit: amount, credit: 0 },
+              { accountId: kasAccount.id, debit: 0, credit: amount },
+            ],
     });
   }
 
   const loading = companyLoading || isLoading;
+  const simpleCategories = jenis === "PEMASUKAN" ? SIMPLE_INCOME_CATEGORIES : SIMPLE_EXPENSE_CATEGORIES;
+  const submitDisabled =
+    createEntry.isLoading ||
+    (mode === "jurnal" ? !isLinesBalanced(lines) : !nominal || parseFloat(nominal) <= 0);
 
   return (
     <div className="space-y-6">
@@ -184,8 +264,31 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Tambah Transaksi Cepat">
+      <Modal open={modalOpen} onClose={closeModal} title="Tambah Transaksi Cepat">
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex rounded-lg bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setMode("sederhana")}
+              className={clsx(
+                "flex-1 rounded-md py-1.5 text-sm font-medium transition",
+                mode === "sederhana" ? "bg-white text-brand-700 shadow-sm" : "text-gray-500",
+              )}
+            >
+              Mode Sederhana
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("jurnal")}
+              className={clsx(
+                "flex-1 rounded-md py-1.5 text-sm font-medium transition",
+                mode === "jurnal" ? "bg-white text-brand-700 shadow-sm" : "text-gray-500",
+              )}
+            >
+              Mode Jurnal
+            </button>
+          </div>
+
           <div>
             <label className="label-field">Tanggal</label>
             <input
@@ -206,12 +309,55 @@ export default function DashboardPage() {
               placeholder="Penjualan tunai"
             />
           </div>
-          <JournalLineRows accounts={accounts ?? []} lines={lines} onChange={setLines} />
-          <button
-            type="submit"
-            disabled={createEntry.isLoading || !isLinesBalanced(lines)}
-            className="btn-primary w-full"
-          >
+
+          {mode === "sederhana" ? (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label-field">Jenis Transaksi</label>
+                  <select
+                    className="input-field"
+                    value={jenis}
+                    onChange={(e) => handleJenisChange(e.target.value as Jenis)}
+                  >
+                    <option value="PEMASUKAN">Pemasukan</option>
+                    <option value="PENGELUARAN">Pengeluaran</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label-field">Kategori</label>
+                  <select
+                    className="input-field"
+                    value={kategori}
+                    onChange={(e) => setKategori(e.target.value)}
+                  >
+                    {simpleCategories.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="label-field">Nominal (Rp)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="input-field"
+                  value={nominal}
+                  onChange={(e) => setNominal(e.target.value)}
+                  required
+                  placeholder="500000"
+                />
+              </div>
+            </>
+          ) : (
+            <JournalLineRows accounts={accounts ?? []} lines={lines} onChange={setLines} />
+          )}
+
+          <button type="submit" disabled={submitDisabled} className="btn-primary w-full">
             {createEntry.isLoading ? "Menyimpan..." : "Simpan Transaksi"}
           </button>
         </form>
