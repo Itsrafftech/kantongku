@@ -7,6 +7,7 @@ import { PeriodFilter, PRESETS, type DateRangeValue } from "@/components/PeriodF
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { ReportPrintHeader } from "@/components/ReportPrintHeader";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
+import { InfoTooltip } from "@/components/ui/Tooltip";
 import { formatDateID, formatRupiah } from "@/lib/format";
 import type { CashFlowLine } from "@/lib/reports/arus-kas";
 
@@ -51,7 +52,10 @@ export default function ArusKasPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Laporan Arus Kas</h1>
+          <h1 className="flex items-center gap-1 text-xl font-semibold text-gray-900">
+            Laporan Arus Kas
+            <InfoTooltip text="Arus Kas menunjukkan pergerakan uang masuk dan keluar dari kas/bank usaha." />
+          </h1>
           <p className="text-sm text-gray-500">Aktivitas operasi, investasi, dan pendanaan</p>
         </div>
         {report && <ExportPdfButton targetRef={printRef} fileName="arus-kas" />}
@@ -61,6 +65,13 @@ export default function ArusKasPage() {
 
       {isLoading || companyLoading ? (
         <TableSkeleton rows={8} />
+      ) : report &&
+        report.operasi.length === 0 &&
+        report.investasi.length === 0 &&
+        report.pendanaan.length === 0 ? (
+        <div className="card text-center text-sm text-gray-500">
+          Belum ada transaksi kas pada periode ini. Transaksi akan muncul jika akun Kas atau Bank digunakan.
+        </div>
       ) : report ? (
         <div ref={printRef} className="card mx-auto max-w-2xl bg-white">
           <ReportPrintHeader

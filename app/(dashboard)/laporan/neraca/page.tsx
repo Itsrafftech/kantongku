@@ -6,6 +6,7 @@ import { useActiveCompany } from "@/components/ActiveCompanyProvider";
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { ReportPrintHeader } from "@/components/ReportPrintHeader";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
+import { InfoTooltip } from "@/components/ui/Tooltip";
 import { formatDateID, formatRupiah, toInputDate } from "@/lib/format";
 
 function Row({ label, amount, bold = false }: { label: string; amount: number; bold?: boolean }) {
@@ -82,7 +83,10 @@ export default function NeracaPage() {
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-500">LIABILITAS & EKUITAS</h4>
+              <h4 className="flex items-center gap-1 text-sm font-semibold text-gray-500">
+                LIABILITAS & EKUITAS
+                <InfoTooltip text="Ekuitas adalah modal usaha — selisih antara harta dan hutang." />
+              </h4>
               <div>
                 <h5 className="mb-1 text-xs font-medium uppercase text-gray-400">
                   Liabilitas Jangka Pendek

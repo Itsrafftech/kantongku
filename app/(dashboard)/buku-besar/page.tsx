@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { useActiveCompany } from "@/components/ActiveCompanyProvider";
 import { PeriodFilter, PRESETS, type DateRangeValue } from "@/components/PeriodFilter";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
+import { AccountCombobox } from "@/components/ui/AccountCombobox";
 import { formatDateID, formatRupiah } from "@/lib/format";
 
 export default function BukuBesarPage() {
@@ -36,19 +37,15 @@ export default function BukuBesarPage() {
 
       <div className="card">
         <label className="label-field">Pilih Akun</label>
-        <select
-          className="input-field max-w-sm"
-          value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          disabled={companyLoading}
-        >
-          <option value="">Pilih akun...</option>
-          {accounts?.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.code} - {account.name}
-            </option>
-          ))}
-        </select>
+        <div className="max-w-sm">
+          <AccountCombobox
+            className="input-field"
+            accounts={accounts ?? []}
+            value={accountId}
+            onChange={setAccountId}
+            disabled={companyLoading}
+          />
+        </div>
       </div>
 
       <PeriodFilter value={range} onChange={setRange} />
@@ -84,7 +81,7 @@ export default function BukuBesarPage() {
               {ledger.movements.length === 0 ? (
                 <tr>
                   <td className="px-4 py-4 text-center text-gray-400" colSpan={6}>
-                    Tidak ada mutasi pada periode ini.
+                    Tidak ada mutasi. Coba ubah periode atau pilih akun lain.
                   </td>
                 </tr>
               ) : (

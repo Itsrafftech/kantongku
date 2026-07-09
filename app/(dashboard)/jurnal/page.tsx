@@ -1,19 +1,21 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import toast from "react-hot-toast";
 import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { useActiveCompany } from "@/components/ActiveCompanyProvider";
 import { Modal } from "@/components/Modal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
 import {
   JournalLineRows,
   emptyLine,
-  isLinesBalanced,
+  getLinesBalanceError,
   type JournalLineInput,
 } from "@/components/JournalLineRows";
 import { formatDateID, formatRupiah, toInputDate } from "@/lib/format";
 import { parseRupiah } from "@/lib/utils/currency";
+import { getDescriptionError, getDateError } from "@/lib/validation/transactionForm";
 
 type JournalEntry = RouterOutputs["journal"]["list"][number];
 
@@ -24,6 +26,12 @@ function startOfMonth() {
 function endOfMonth() {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth() + 1, 0);
+}
+
+function isEntryBalanced(entry: JournalEntry) {
+  const totalDebit = entry.lines.reduce((sum, l) => sum + Number(l.debit), 0);
+  const totalCredit = entry.lines.reduce((sum, l) => sum + Number(l.credit), 0);
+  return Math.round(totalDebit * 100) === Math.round(totalCredit * 100);
 }
 
 export default function JurnalPage() {
@@ -39,6 +47,7 @@ export default function JurnalPage() {
   const [description, setDescription] = useState("");
   const [reference, setReference] = useState("");
   const [lines, setLines] = useState<JournalLineInput[]>([emptyLine(), emptyLine()]);
+  const [deleteTarget, setDeleteTarget] = useState<JournalEntry | null>(null);
 
   const { data: accounts } = trpc.account.list.useQuery(
     { companyId: activeCompanyId! },
@@ -67,6 +76,7 @@ export default function JurnalPage() {
     onSuccess: () => {
       toast.success("Jurnal berhasil dihapus");
       utils.journal.list.invalidate();
+      setDeleteTarget(null);
     },
     onError: (error) => toast.error(error.message || "Gagal menghapus jurnal"),
   });
@@ -79,13 +89,20 @@ export default function JurnalPage() {
     setLines([emptyLine(), emptyLine()]);
   }
 
+  const formErrors = useMemo(() => {
+    const errors: string[] = [];
+    const descError = getDescriptionError(description);
+    if (descError) errors.push(descError);
+    const dateError = getDateError(date);
+    if (dateError) errors.push(dateError);
+    const linesError = getLinesBalanceError(lines);
+    if (linesError) errors.push(linesError);
+    return errors;
+  }, [description, date, lines]);
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!activeCompanyId) return;
-    if (!isLinesBalanced(lines)) {
-      toast.error("Total debit dan kredit harus seimbang");
-      return;
-    }
+    if (!activeCompanyId || formErrors.length > 0) return;
     createEntry.mutate({
       companyId: activeCompanyId,
       date: new Date(date),
@@ -101,10 +118,9 @@ export default function JurnalPage() {
     });
   }
 
-  function handleDelete(entry: JournalEntry) {
-    if (!activeCompanyId) return;
-    if (!confirm("Hapus jurnal ini?")) return;
-    deleteEntry.mutate({ companyId: activeCompanyId, entryId: entry.id });
+  function confirmDelete() {
+    if (!activeCompanyId || !deleteTarget) return;
+    deleteEntry.mutate({ companyId: activeCompanyId, entryId: deleteTarget.id });
   }
 
   function entryTotal(entry: JournalEntry) {
@@ -148,7 +164,7 @@ export default function JurnalPage() {
         <TableSkeleton rows={6} />
       ) : !entries || entries.length === 0 ? (
         <div className="card text-center text-sm text-gray-500">
-          Belum ada transaksi pada periode ini.
+          Belum ada transaksi. Klik Tambah Jurnal untuk mulai mencatat.
         </div>
       ) : (
         <div className="card overflow-x-auto !p-0">
@@ -163,43 +179,57 @@ export default function JurnalPage() {
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => (
-                <tr key={entry.id} className="border-b border-gray-50 last:border-0 align-top">
-                  <td className="whitespace-nowrap px-4 py-2.5 text-gray-700">
-                    {formatDateID(entry.date)}
-                  </td>
-                  <td className="px-4 py-2.5 text-gray-900">
-                    {entry.description}
-                    <div className="mt-1 space-y-0.5 text-xs text-gray-400">
-                      {entry.lines.map((line) => (
-                        <div key={line.id}>
-                          {line.account.code} {line.account.name} —{" "}
-                          {Number(line.debit) > 0
-                            ? `Debit ${formatRupiah(Number(line.debit))}`
-                            : `Kredit ${formatRupiah(Number(line.credit))}`}
-                        </div>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 text-gray-500">{entry.reference || "-"}</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-right font-medium text-gray-900">
-                    {formatRupiah(entryTotal(entry))}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                    {entry.isSystemGenerated ? (
-                      <span className="text-xs text-gray-400">Jurnal Penutup</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(entry)}
-                        className="text-red-500 hover:underline"
-                      >
-                        Hapus
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {entries.map((entry) => {
+                const balanced = isEntryBalanced(entry);
+                return (
+                  <tr key={entry.id} className="border-b border-gray-50 last:border-0 align-top">
+                    <td className="whitespace-nowrap px-4 py-2.5 text-gray-700">
+                      {formatDateID(entry.date)}
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-900">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{entry.description}</span>
+                        {balanced ? (
+                          <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                            Seimbang
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
+                            Tidak seimbang
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 space-y-0.5 text-xs text-gray-400">
+                        {entry.lines.map((line) => (
+                          <div key={line.id}>
+                            {line.account.code} {line.account.name} —{" "}
+                            {Number(line.debit) > 0
+                              ? `Debit ${formatRupiah(Number(line.debit))}`
+                              : `Kredit ${formatRupiah(Number(line.credit))}`}
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-500">{entry.reference || "-"}</td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right font-medium text-gray-900">
+                      {formatRupiah(entryTotal(entry))}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2.5 text-right">
+                      {entry.isSystemGenerated ? (
+                        <span className="text-xs text-gray-400">Jurnal Penutup</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(entry)}
+                          className="text-red-500 hover:underline"
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -239,15 +269,39 @@ export default function JurnalPage() {
             />
           </div>
           <JournalLineRows accounts={accounts ?? []} lines={lines} onChange={setLines} />
+
+          {formErrors.length > 0 && (
+            <div className="space-y-1">
+              {formErrors.map((error) => (
+                <p key={error} className="text-sm text-red-500">
+                  {error}
+                </p>
+              ))}
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={createEntry.isLoading || !isLinesBalanced(lines)}
+            disabled={createEntry.isLoading || formErrors.length > 0}
             className="btn-primary w-full"
           >
             {createEntry.isLoading ? "Menyimpan..." : "Simpan Jurnal"}
           </button>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Hapus jurnal?"
+        body={
+          deleteTarget
+            ? `Tindakan ini tidak bisa dibatalkan. "${deleteTarget.description}" akan dihapus permanen.`
+            : ""
+        }
+        loading={deleteEntry.isLoading}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

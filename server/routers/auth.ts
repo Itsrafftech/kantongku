@@ -34,7 +34,7 @@ export const authRouter = router({
         });
 
         await tx.account.createMany({
-          data: DEFAULT_COA.map((account) => ({ ...account, companyId: company.id })),
+          data: DEFAULT_COA.map((account) => ({ ...account, companyId: company.id, isDefault: true })),
         });
 
         return createdUser;

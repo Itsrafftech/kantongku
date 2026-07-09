@@ -42,7 +42,7 @@ async function main() {
   });
 
   await prisma.account.createMany({
-    data: DEFAULT_COA.map((account) => ({ ...account, companyId: company.id })),
+    data: DEFAULT_COA.map((account) => ({ ...account, companyId: company.id, isDefault: true })),
   });
 
   const accounts = await prisma.account.findMany({ where: { companyId: company.id } });

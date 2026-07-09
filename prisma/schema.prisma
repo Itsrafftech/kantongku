@@ -53,6 +53,7 @@ model Account {
   type          AccountType
   normalBalance NormalBalance
   isCashAccount Boolean       @default(false)
+  isDefault     Boolean       @default(false)
   companyId     String
   company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   journalLines  JournalLine[]

@@ -2,24 +2,20 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import toast from "react-hot-toast";
+import { Trash2, Edit2 } from "lucide-react";
 import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { useActiveCompany } from "@/components/ActiveCompanyProvider";
 import { Modal } from "@/components/Modal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
-import { defaultNormalBalanceForType } from "@/lib/coa";
+import { InfoTooltip } from "@/components/ui/Tooltip";
+import { defaultNormalBalanceForType, ACCOUNT_TYPE_ORDER, ACCOUNT_TYPE_LABELS } from "@/lib/coa";
 
 type Account = RouterOutputs["account"]["list"][number];
 type AccountType = Account["type"];
 
-const TYPE_ORDER: AccountType[] = ["ASET", "LIABILITAS", "EKUITAS", "PENDAPATAN", "HPP", "BEBAN"];
-const TYPE_LABELS: Record<AccountType, string> = {
-  ASET: "Aset",
-  LIABILITAS: "Liabilitas",
-  EKUITAS: "Ekuitas",
-  PENDAPATAN: "Pendapatan",
-  HPP: "Harga Pokok Penjualan (HPP)",
-  BEBAN: "Beban Operasional",
-};
+const TYPE_ORDER = ACCOUNT_TYPE_ORDER;
+const TYPE_LABELS = ACCOUNT_TYPE_LABELS;
 
 const emptyForm = {
   code: "",
@@ -35,6 +31,7 @@ export default function AkunPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
 
   const { data: accounts, isLoading } = trpc.account.list.useQuery(
     { companyId: activeCompanyId! },
@@ -72,6 +69,7 @@ export default function AkunPage() {
     onSuccess: () => {
       toast.success("Akun berhasil dihapus");
       utils.account.list.invalidate();
+      setDeleteTarget(null);
     },
     onError: (error) => toast.error(error.message || "Gagal menghapus akun"),
   });
@@ -110,10 +108,9 @@ export default function AkunPage() {
     }
   }
 
-  function handleDelete(account: Account) {
-    if (!activeCompanyId) return;
-    if (!confirm(`Hapus akun "${account.code} - ${account.name}"?`)) return;
-    deleteAccount.mutate({ companyId: activeCompanyId, accountId: account.id });
+  function confirmDelete() {
+    if (!activeCompanyId || !deleteTarget) return;
+    deleteAccount.mutate({ companyId: activeCompanyId, accountId: deleteTarget.id });
   }
 
   const saving = createAccount.isLoading || updateAccount.isLoading;
@@ -140,8 +137,11 @@ export default function AkunPage() {
             return (
               <div key={type} className="card overflow-hidden !p-0">
                 <div className="border-b border-gray-100 bg-gray-50 px-4 py-2.5">
-                  <h2 className="text-sm font-semibold text-gray-700">
+                  <h2 className="flex items-center gap-1 text-sm font-semibold text-gray-700">
                     {TYPE_LABELS[type]}
+                    {type === "HPP" && (
+                      <InfoTooltip text="HPP (Harga Pokok Penjualan) adalah biaya langsung untuk membuat/membeli barang yang dijual." />
+                    )}
                   </h2>
                 </div>
                 <table className="w-full text-sm">
@@ -163,27 +163,41 @@ export default function AkunPage() {
                           {account.normalBalance === "DEBIT" ? "Debit" : "Kredit"}
                         </td>
                         <td className="px-4 py-2.5">
-                          {account.isCashAccount && (
-                            <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
-                              Kas/Bank
-                            </span>
-                          )}
+                          <div className="flex gap-1.5">
+                            {account.isCashAccount && (
+                              <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                                Kas/Bank
+                              </span>
+                            )}
+                            {account.isDefault && (
+                              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                                Default
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(account)}
-                            className="mr-3 text-brand-600 hover:underline"
-                          >
-                            Ubah
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(account)}
-                            className="text-red-500 hover:underline"
-                          >
-                            Hapus
-                          </button>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={() => openEdit(account)}
+                              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-brand-600"
+                              aria-label="Ubah akun"
+                              title="Ubah akun"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(account)}
+                              disabled={account.isDefault}
+                              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                              aria-label="Hapus akun"
+                              title={account.isDefault ? "Akun default tidak dapat dihapus" : "Hapus akun"}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -267,6 +281,19 @@ export default function AkunPage() {
           </button>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Hapus akun?"
+        body={
+          deleteTarget
+            ? `Tindakan ini tidak bisa dibatalkan. Akun "${deleteTarget.code} - ${deleteTarget.name}" akan dihapus permanen.`
+            : ""
+        }
+        loading={deleteAccount.isLoading}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

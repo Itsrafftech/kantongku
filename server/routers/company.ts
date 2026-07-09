@@ -25,7 +25,7 @@ export const companyRouter = router({
           data: { ...input, userId: ctx.session.user.id },
         });
         await tx.account.createMany({
-          data: DEFAULT_COA.map((account) => ({ ...account, companyId: company.id })),
+          data: DEFAULT_COA.map((account) => ({ ...account, companyId: company.id, isDefault: true })),
         });
         return company;
       });

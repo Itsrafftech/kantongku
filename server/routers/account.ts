@@ -81,6 +81,9 @@ export const accountRouter = router({
         include: { _count: { select: { journalLines: true } } },
       });
       if (!account) throw new TRPCError({ code: "NOT_FOUND", message: "Akun tidak ditemukan" });
+      if (account.isDefault) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Akun default tidak dapat dihapus" });
+      }
       if (account._count.journalLines > 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",

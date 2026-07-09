@@ -34,6 +34,24 @@ export function defaultNormalBalanceForType(type: AccountType): NormalBalance {
   }
 }
 
+export const ACCOUNT_TYPE_ORDER: AccountType[] = [
+  "ASET",
+  "LIABILITAS",
+  "EKUITAS",
+  "PENDAPATAN",
+  "HPP",
+  "BEBAN",
+];
+
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  ASET: "Aset",
+  LIABILITAS: "Liabilitas",
+  EKUITAS: "Ekuitas",
+  PENDAPATAN: "Pendapatan",
+  HPP: "Harga Pokok Penjualan (HPP)",
+  BEBAN: "Beban Operasional",
+};
+
 // Report-classification conventions (used by lib/reports builders):
 export const OTHER_INCOME_CODES = ["403"]; // Pendapatan Lain-lain — outside Pendapatan Usaha
 export const OTHER_EXPENSE_CODES = ["609", "610"]; // Beban Bunga Bank & Beban Lain-lain — outside Beban Operasional

@@ -1,8 +1,11 @@
 "use client";
 
+import type { AccountType } from "@prisma/client";
 import { formatRupiah } from "@/lib/format";
 import { parseRupiah } from "@/lib/utils/currency";
 import { RupiahInput } from "@/components/RupiahInput";
+import { InfoTooltip } from "@/components/ui/Tooltip";
+import { AccountCombobox } from "@/components/ui/AccountCombobox";
 
 export interface JournalLineInput {
   accountId: string;
@@ -14,6 +17,7 @@ interface Account {
   id: string;
   code: string;
   name: string;
+  type: AccountType;
 }
 
 export function emptyLine(): JournalLineInput {
@@ -44,28 +48,30 @@ export function JournalLineRows({
 
   return (
     <div className="space-y-3">
+      <p className="rounded bg-blue-50 p-2 text-xs text-blue-800">
+        Gunakan mode ini jika Anda memahami debit dan kredit. Contoh: Penjualan tunai = Debit Kas, Kredit
+        Penjualan.
+      </p>
+
       <div className="hidden grid-cols-[1fr_140px_140px_32px] gap-2 px-1 text-xs font-medium uppercase text-gray-400 sm:grid">
         <span>Akun</span>
         <span>Debit</span>
-        <span>Kredit</span>
+        <span className="inline-flex items-center gap-1">
+          Kredit
+          <InfoTooltip text="Debit dan kredit mencatat perubahan akun. Gunakan mode ini jika Anda memahami konsep ini." />
+        </span>
         <span />
       </div>
 
       {lines.map((line, index) => (
         <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_140px_140px_32px]">
-          <select
+          <AccountCombobox
             className="input-field"
+            accounts={accounts}
             value={line.accountId}
-            onChange={(e) => updateLine(index, { accountId: e.target.value })}
+            onChange={(accountId) => updateLine(index, { accountId })}
             required
-          >
-            <option value="">Pilih akun...</option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.code} - {account.name}
-              </option>
-            ))}
-          </select>
+          />
           <RupiahInput
             className="input-field"
             placeholder="Debit"
@@ -121,4 +127,17 @@ export function isLinesBalanced(lines: JournalLineInput[]) {
   const totalDebit = lines.reduce((sum, l) => sum + parseRupiah(l.debit), 0);
   const totalCredit = lines.reduce((sum, l) => sum + parseRupiah(l.credit), 0);
   return totalDebit === totalCredit && totalDebit > 0;
+}
+
+/** Inline-error version of isLinesBalanced, for surfacing why the form can't be submitted. */
+export function getLinesBalanceError(lines: JournalLineInput[]): string | null {
+  const totalDebit = lines.reduce((sum, l) => sum + parseRupiah(l.debit), 0);
+  const totalCredit = lines.reduce((sum, l) => sum + parseRupiah(l.credit), 0);
+  if (totalDebit !== totalCredit) {
+    return "Total debit dan kredit harus sama sebelum transaksi dapat disimpan";
+  }
+  if (totalDebit <= 0) {
+    return "Nominal harus lebih dari 0";
+  }
+  return null;
 }

@@ -7,6 +7,7 @@ import { PeriodFilter, PRESETS, type DateRangeValue } from "@/components/PeriodF
 import { ExportPdfButton } from "@/components/ExportPdfButton";
 import { ReportPrintHeader } from "@/components/ReportPrintHeader";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
+import { InfoTooltip } from "@/components/ui/Tooltip";
 import { formatDateID, formatRupiah } from "@/lib/format";
 
 function Row({ label, amount, bold = false }: { label: string; amount: number; bold?: boolean }) {
@@ -62,7 +63,10 @@ export default function LabaRugiPage() {
             </div>
 
             <div>
-              <h4 className="mb-1 text-sm font-semibold text-gray-500">Harga Pokok Penjualan</h4>
+              <h4 className="mb-1 flex items-center gap-1 text-sm font-semibold text-gray-500">
+                Harga Pokok Penjualan
+                <InfoTooltip text="HPP (Harga Pokok Penjualan) adalah biaya langsung untuk membuat/membeli barang yang dijual." />
+              </h4>
               {report.hpp.map((item) => (
                 <Row key={item.account.id} label={item.account.name} amount={item.amount} />
               ))}
