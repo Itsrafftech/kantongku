@@ -27,6 +27,8 @@ import {
   type JournalLineInput,
 } from "@/components/JournalLineRows";
 import { formatDateID, formatRupiah, toInputDate } from "@/lib/format";
+import { parseRupiah } from "@/lib/utils/currency";
+import { useRupiahInput } from "@/hooks/useRupiahInput";
 import {
   KAS_ACCOUNT_CODE,
   SIMPLE_INCOME_CATEGORIES,
@@ -61,7 +63,7 @@ export default function DashboardPage() {
   const [lines, setLines] = useState<JournalLineInput[]>([emptyLine(), emptyLine()]);
   const [jenis, setJenis] = useState<Jenis>("PEMASUKAN");
   const [kategori, setKategori] = useState(SIMPLE_INCOME_CATEGORIES[0].code);
-  const [nominal, setNominal] = useState("");
+  const nominalInput = useRupiahInput();
 
   // Remember last used mode for the rest of this browser session.
   useEffect(() => {
@@ -115,7 +117,7 @@ export default function DashboardPage() {
   function resetForm() {
     setDescription("");
     setLines([emptyLine(), emptyLine()]);
-    setNominal("");
+    nominalInput.setValue("");
     setJenis("PEMASUKAN");
     setKategori(SIMPLE_INCOME_CATEGORIES[0].code);
   }
@@ -152,15 +154,15 @@ export default function DashboardPage() {
           .filter((l) => l.accountId)
           .map((l) => ({
             accountId: l.accountId,
-            debit: parseFloat(l.debit) || 0,
-            credit: parseFloat(l.credit) || 0,
+            debit: parseRupiah(l.debit),
+            credit: parseRupiah(l.credit),
           })),
       });
       return;
     }
 
     // Mode Sederhana: build the double-entry journal automatically.
-    const amount = parseFloat(nominal) || 0;
+    const amount = nominalInput.numericValue;
     if (amount <= 0) {
       toast.error("Nominal harus lebih dari 0");
       return;
@@ -193,7 +195,7 @@ export default function DashboardPage() {
   const simpleCategories = jenis === "PEMASUKAN" ? SIMPLE_INCOME_CATEGORIES : SIMPLE_EXPENSE_CATEGORIES;
   const submitDisabled =
     createEntry.isLoading ||
-    (mode === "jurnal" ? !isLinesBalanced(lines) : !nominal || parseFloat(nominal) <= 0);
+    (mode === "jurnal" ? !isLinesBalanced(lines) : nominalInput.numericValue <= 0);
 
   return (
     <div className="space-y-6">
@@ -369,14 +371,14 @@ export default function DashboardPage() {
               <div>
                 <label className="label-field">Nominal (Rp)</label>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  ref={nominalInput.inputRef}
+                  type="text"
+                  inputMode="numeric"
                   className="input-field"
-                  value={nominal}
-                  onChange={(e) => setNominal(e.target.value)}
+                  value={nominalInput.displayValue}
+                  onChange={nominalInput.onChange}
                   required
-                  placeholder="500000"
+                  placeholder="500.000"
                 />
               </div>
             </>

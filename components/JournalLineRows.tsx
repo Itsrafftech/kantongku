@@ -1,6 +1,8 @@
 "use client";
 
 import { formatRupiah } from "@/lib/format";
+import { parseRupiah } from "@/lib/utils/currency";
+import { RupiahInput } from "@/components/RupiahInput";
 
 export interface JournalLineInput {
   accountId: string;
@@ -27,8 +29,8 @@ export function JournalLineRows({
   lines: JournalLineInput[];
   onChange: (lines: JournalLineInput[]) => void;
 }) {
-  const totalDebit = lines.reduce((sum, l) => sum + (parseFloat(l.debit) || 0), 0);
-  const totalCredit = lines.reduce((sum, l) => sum + (parseFloat(l.credit) || 0), 0);
+  const totalDebit = lines.reduce((sum, l) => sum + parseRupiah(l.debit), 0);
+  const totalCredit = lines.reduce((sum, l) => sum + parseRupiah(l.credit), 0);
   const balanced = totalDebit === totalCredit && totalDebit > 0;
 
   function updateLine(index: number, patch: Partial<JournalLineInput>) {
@@ -64,23 +66,17 @@ export function JournalLineRows({
               </option>
             ))}
           </select>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
+          <RupiahInput
             className="input-field"
             placeholder="Debit"
             value={line.debit}
-            onChange={(e) => updateLine(index, { debit: e.target.value, credit: e.target.value ? "" : line.credit })}
+            onChange={(formatted) => updateLine(index, { debit: formatted, credit: formatted ? "" : line.credit })}
           />
-          <input
-            type="number"
-            min="0"
-            step="0.01"
+          <RupiahInput
             className="input-field"
             placeholder="Kredit"
             value={line.credit}
-            onChange={(e) => updateLine(index, { credit: e.target.value, debit: e.target.value ? "" : line.debit })}
+            onChange={(formatted) => updateLine(index, { credit: formatted, debit: formatted ? "" : line.debit })}
           />
           <button
             type="button"
@@ -122,7 +118,7 @@ export function JournalLineRows({
 }
 
 export function isLinesBalanced(lines: JournalLineInput[]) {
-  const totalDebit = lines.reduce((sum, l) => sum + (parseFloat(l.debit) || 0), 0);
-  const totalCredit = lines.reduce((sum, l) => sum + (parseFloat(l.credit) || 0), 0);
+  const totalDebit = lines.reduce((sum, l) => sum + parseRupiah(l.debit), 0);
+  const totalCredit = lines.reduce((sum, l) => sum + parseRupiah(l.credit), 0);
   return totalDebit === totalCredit && totalDebit > 0;
 }

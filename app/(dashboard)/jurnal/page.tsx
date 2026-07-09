@@ -13,6 +13,7 @@ import {
   type JournalLineInput,
 } from "@/components/JournalLineRows";
 import { formatDateID, formatRupiah, toInputDate } from "@/lib/format";
+import { parseRupiah } from "@/lib/utils/currency";
 
 type JournalEntry = RouterOutputs["journal"]["list"][number];
 
@@ -94,8 +95,8 @@ export default function JurnalPage() {
         .filter((l) => l.accountId)
         .map((l) => ({
           accountId: l.accountId,
-          debit: parseFloat(l.debit) || 0,
-          credit: parseFloat(l.credit) || 0,
+          debit: parseRupiah(l.debit),
+          credit: parseRupiah(l.credit),
         })),
     });
   }
