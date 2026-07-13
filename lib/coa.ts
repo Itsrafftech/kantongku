@@ -1,7 +1,9 @@
 import type { AccountType, NormalBalance } from "@prisma/client";
 
-export const RETAINED_EARNINGS_CODE = "303"; // Laba Ditahan — target of closing entries
+export const RETAINED_EARNINGS_CODE = "303"; // Laba Ditahan
 export const PRIVE_CODE = "302"; // Prive — owner withdrawals
+export const MODAL_CODE = "301"; // Modal Pemilik — target of period closing (revenue/expense/prive close here)
+export const IKHTISAR_LABA_RUGI_CODE = "399"; // Ikhtisar Laba Rugi — closing intermediary account
 export const KAS_ACCOUNT_CODE = "101"; // Kas — default cash side for Mode Sederhana entries
 
 /**
@@ -115,6 +117,7 @@ export const DEFAULT_COA: DefaultAccount[] = [
   { code: "301", name: "Modal Pemilik", type: "EKUITAS", normalBalance: "KREDIT" },
   { code: PRIVE_CODE, name: "Prive", type: "EKUITAS", normalBalance: "DEBIT" },
   { code: RETAINED_EARNINGS_CODE, name: "Laba Ditahan", type: "EKUITAS", normalBalance: "KREDIT" },
+  { code: IKHTISAR_LABA_RUGI_CODE, name: "Ikhtisar Laba Rugi", type: "EKUITAS", normalBalance: "KREDIT" },
 
   // 4xx — Pendapatan
   { code: "401", name: "Penjualan", type: "PENDAPATAN", normalBalance: "KREDIT" },

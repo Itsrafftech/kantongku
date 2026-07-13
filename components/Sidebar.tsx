@@ -16,6 +16,7 @@ const NAV_ITEMS = [
       { href: "/laporan/neraca", label: "Neraca" },
       { href: "/laporan/arus-kas", label: "Arus Kas" },
       { href: "/laporan/perubahan-modal", label: "Perubahan Modal" },
+      { href: "/laporan/neraca-saldo-penutupan", label: "Neraca Saldo Penutupan" },
     ],
   },
   { href: "/akun", label: "Daftar Akun" },

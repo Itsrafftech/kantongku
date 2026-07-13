@@ -32,7 +32,7 @@ async function assertDateNotInClosedPeriod(
   if (closedPeriod) {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: `Periode "${closedPeriod.name}" sudah ditutup, tidak dapat mengubah jurnal pada tanggal ini`,
+      message: "Tidak bisa mencatat transaksi pada periode yang sudah ditutup.",
     });
   }
 }

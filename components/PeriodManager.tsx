@@ -2,10 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import toast from "react-hot-toast";
-import { trpc } from "@/lib/trpc";
+import { trpc, type RouterOutputs } from "@/lib/trpc";
 import { useActiveCompany } from "@/components/ActiveCompanyProvider";
 import { CardSkeleton } from "@/components/LoadingSkeleton";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { PeriodStatusBadge } from "@/components/PeriodStatusBadge";
 import { formatDateID, toInputDate } from "@/lib/format";
+
+type Period = RouterOutputs["period"]["list"][number];
 
 export function PeriodManager() {
   const { activeCompanyId, isLoading: companyLoading } = useActiveCompany();
@@ -15,6 +19,7 @@ export function PeriodManager() {
     startDate: toInputDate(new Date(new Date().getFullYear(), 0, 1)),
     endDate: toInputDate(new Date(new Date().getFullYear(), 11, 31)),
   });
+  const [closingTarget, setClosingTarget] = useState<Period | null>(null);
 
   const { data: periods, isLoading } = trpc.period.list.useQuery(
     { companyId: activeCompanyId! },
@@ -35,6 +40,8 @@ export function PeriodManager() {
       toast.success("Periode berhasil ditutup, jurnal penutup telah dibuat");
       utils.period.list.invalidate();
       utils.journal.list.invalidate();
+      utils.account.list.invalidate();
+      setClosingTarget(null);
     },
     onError: (error) => toast.error(error.message || "Gagal menutup periode"),
   });
@@ -50,13 +57,9 @@ export function PeriodManager() {
     });
   }
 
-  function handleClose(periodId: string, name: string) {
-    if (!activeCompanyId) return;
-    const confirmed = confirm(
-      `Tutup buku untuk periode "${name}"? Tindakan ini akan membuat jurnal penutup otomatis dan TIDAK DAPAT DIBATALKAN. Semua transaksi pada tanggal dalam periode ini tidak dapat lagi diubah.`,
-    );
-    if (!confirmed) return;
-    closePeriod.mutate({ companyId: activeCompanyId, periodId });
+  function confirmClose() {
+    if (!activeCompanyId || !closingTarget) return;
+    closePeriod.mutate({ companyId: activeCompanyId, periodId: closingTarget.id });
   }
 
   if (companyLoading || isLoading) return <CardSkeleton />;
@@ -65,7 +68,7 @@ export function PeriodManager() {
     <div className="card space-y-4">
       <div>
         <h2 className="text-base font-semibold text-gray-900">Periode Akuntansi</h2>
-        <p className="text-sm text-gray-500">Kelola periode dan tutup buku akhir periode</p>
+        <p className="text-sm text-gray-500">Kelola periode dan tutup periode akhir tahun buku</p>
       </div>
 
       {periods && periods.length > 0 && (
@@ -78,20 +81,19 @@ export function PeriodManager() {
                   {formatDateID(period.startDate)} - {formatDateID(period.endDate)}
                 </p>
               </div>
-              {period.isClosed ? (
-                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
-                  Ditutup
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleClose(period.id, period.name)}
-                  disabled={closePeriod.isLoading}
-                  className="text-xs font-medium text-red-500 hover:underline"
-                >
-                  Tutup Buku
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                <PeriodStatusBadge isClosed={period.isClosed} />
+                {!period.isClosed && (
+                  <button
+                    type="button"
+                    onClick={() => setClosingTarget(period)}
+                    disabled={closePeriod.isLoading}
+                    className="text-xs font-medium text-red-500 hover:underline"
+                  >
+                    Tutup Periode
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -133,6 +135,16 @@ export function PeriodManager() {
           {createPeriod.isLoading ? "Membuat..." : "Buat Periode"}
         </button>
       </form>
+
+      <ConfirmDialog
+        open={!!closingTarget}
+        title={`Tutup periode ${closingTarget?.name ?? ""}?`}
+        body="Setelah ditutup, akun Pendapatan, Beban, HPP, dan Prive akan direset ke nol dan saldonya dipindahkan ke Modal. Transaksi baru tidak bisa dicatat pada periode ini. Tindakan ini tidak bisa dibatalkan."
+        confirmLabel="Ya, tutup periode"
+        loading={closePeriod.isLoading}
+        onConfirm={confirmClose}
+        onCancel={() => setClosingTarget(null)}
+      />
     </div>
   );
 }

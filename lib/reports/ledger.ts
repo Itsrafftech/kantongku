@@ -7,6 +7,9 @@ export interface DateRange {
   end: Date;
 }
 
+/** Accepts either the top-level client or a `prisma.$transaction(async (tx) => ...)` handle. */
+export type PrismaClientOrTx = PrismaClient | Prisma.TransactionClient;
+
 /** Signed movement for a single line, respecting the account's normal balance side. */
 function signedAmount(account: Pick<Account, "normalBalance">, debit: Prisma.Decimal, credit: Prisma.Decimal) {
   return account.normalBalance === "DEBIT" ? debit.sub(credit) : credit.sub(debit);
@@ -27,7 +30,7 @@ export interface AccountBalance {
  * they share one pass over JournalLine instead of N+1 per-account queries.
  */
 export async function getAllAccountBalances(
-  prisma: PrismaClient,
+  prisma: PrismaClientOrTx,
   companyId: string,
   range: DateRange,
 ): Promise<Map<string, AccountBalance>> {
@@ -95,7 +98,7 @@ export interface AccountLedger {
 
 /** Per-account chronological ledger (Buku Besar) with a running balance. */
 export async function getAccountLedger(
-  prisma: PrismaClient,
+  prisma: PrismaClientOrTx,
   companyId: string,
   accountId: string,
   range: DateRange,
