@@ -9,13 +9,13 @@ import { Modal } from "@/components/Modal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
 import { InfoTooltip } from "@/components/ui/Tooltip";
-import { defaultNormalBalanceForType, ACCOUNT_TYPE_ORDER, ACCOUNT_TYPE_LABELS } from "@/lib/coa";
+import { defaultNormalBalanceForType, ACCOUNT_TYPE_ORDER, getAccountTypeLabel, getDisplayAccountName } from "@/lib/coa";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Account = RouterOutputs["account"]["list"][number];
 type AccountType = Account["type"];
 
 const TYPE_ORDER = ACCOUNT_TYPE_ORDER;
-const TYPE_LABELS = ACCOUNT_TYPE_LABELS;
 
 const emptyForm = {
   code: "",
@@ -26,6 +26,7 @@ const emptyForm = {
 };
 
 export default function AkunPage() {
+  const { t, lang } = useLanguage();
   const { activeCompanyId, isLoading: companyLoading } = useActiveCompany();
   const utils = trpc.useContext();
   const [modalOpen, setModalOpen] = useState(false);
@@ -49,29 +50,29 @@ export default function AkunPage() {
 
   const createAccount = trpc.account.create.useMutation({
     onSuccess: () => {
-      toast.success("Akun berhasil ditambahkan");
+      toast.success(t("accounts.createSuccess"));
       utils.account.list.invalidate();
       closeModal();
     },
-    onError: (error) => toast.error(error.message || "Gagal menambahkan akun"),
+    onError: (error) => toast.error(error.message || t("accounts.createError")),
   });
 
   const updateAccount = trpc.account.update.useMutation({
     onSuccess: () => {
-      toast.success("Akun berhasil diperbarui");
+      toast.success(t("accounts.updateSuccess"));
       utils.account.list.invalidate();
       closeModal();
     },
-    onError: (error) => toast.error(error.message || "Gagal memperbarui akun"),
+    onError: (error) => toast.error(error.message || t("accounts.updateError")),
   });
 
   const deleteAccount = trpc.account.delete.useMutation({
     onSuccess: () => {
-      toast.success("Akun berhasil dihapus");
+      toast.success(t("accounts.deleteSuccess"));
       utils.account.list.invalidate();
       setDeleteTarget(null);
     },
-    onError: (error) => toast.error(error.message || "Gagal menghapus akun"),
+    onError: (error) => toast.error(error.message || t("accounts.deleteError")),
   });
 
   function openCreate() {
@@ -119,11 +120,11 @@ export default function AkunPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Daftar Akun</h1>
-          <p className="text-sm text-gray-500">Chart of Accounts sesuai SAK EMKM</p>
+          <h1 className="text-xl font-semibold text-gray-900">{t("accounts.pageTitle")}</h1>
+          <p className="text-sm text-gray-500">{t("accounts.pageSubtitle")}</p>
         </div>
         <button type="button" onClick={openCreate} className="btn-primary">
-          + Tambah Akun
+          {t("accounts.addAccount")}
         </button>
       </div>
 
@@ -138,40 +139,40 @@ export default function AkunPage() {
               <div key={type} className="card overflow-hidden !p-0">
                 <div className="border-b border-gray-100 bg-gray-50 px-4 py-2.5">
                   <h2 className="flex items-center gap-1 text-sm font-semibold text-gray-700">
-                    {TYPE_LABELS[type]}
+                    {getAccountTypeLabel(type, lang)}
                     {type === "HPP" && (
-                      <InfoTooltip text="HPP (Harga Pokok Penjualan) adalah biaya langsung untuk membuat/membeli barang yang dijual." />
+                      <InfoTooltip text={t("accounts.cogsTooltip")} />
                     )}
                   </h2>
                 </div>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 text-left text-xs uppercase text-gray-400">
-                      <th className="px-4 py-2 font-medium">Kode</th>
-                      <th className="px-4 py-2 font-medium">Nama Akun</th>
-                      <th className="px-4 py-2 font-medium">Saldo Normal</th>
+                      <th className="px-4 py-2 font-medium">{t("accounts.colCode")}</th>
+                      <th className="px-4 py-2 font-medium">{t("accounts.colName")}</th>
+                      <th className="px-4 py-2 font-medium">{t("accounts.colNormalBalance")}</th>
                       <th className="px-4 py-2 font-medium"></th>
-                      <th className="px-4 py-2 font-medium text-right">Aksi</th>
+                      <th className="px-4 py-2 font-medium text-right">{t("common.actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {items.map((account) => (
                       <tr key={account.id} className="border-b border-gray-50 last:border-0">
                         <td className="px-4 py-2.5 font-mono text-gray-700">{account.code}</td>
-                        <td className="px-4 py-2.5 text-gray-900">{account.name}</td>
+                        <td className="px-4 py-2.5 text-gray-900">{getDisplayAccountName(account, lang)}</td>
                         <td className="px-4 py-2.5 text-gray-600">
-                          {account.normalBalance === "DEBIT" ? "Debit" : "Kredit"}
+                          {account.normalBalance === "DEBIT" ? t("common.debit") : t("common.credit")}
                         </td>
                         <td className="px-4 py-2.5">
                           <div className="flex gap-1.5">
                             {account.isCashAccount && (
                               <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
-                                Kas/Bank
+                                {t("accounts.cashBankBadge")}
                               </span>
                             )}
                             {account.isDefault && (
                               <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-                                Default
+                                {t("accounts.defaultBadge")}
                               </span>
                             )}
                           </div>
@@ -182,8 +183,8 @@ export default function AkunPage() {
                               type="button"
                               onClick={() => openEdit(account)}
                               className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-brand-600"
-                              aria-label="Ubah akun"
-                              title="Ubah akun"
+                              aria-label={t("accounts.editAccount")}
+                              title={t("accounts.editAccount")}
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
@@ -192,8 +193,8 @@ export default function AkunPage() {
                               onClick={() => setDeleteTarget(account)}
                               disabled={account.isDefault}
                               className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400"
-                              aria-label="Hapus akun"
-                              title={account.isDefault ? "Akun default tidak dapat dihapus" : "Hapus akun"}
+                              aria-label={t("accounts.deleteAccount")}
+                              title={account.isDefault ? t("accounts.defaultAccountCannotDelete") : t("accounts.deleteAccount")}
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -209,11 +210,11 @@ export default function AkunPage() {
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={closeModal} title={editing ? "Ubah Akun" : "Tambah Akun"}>
+      <Modal open={modalOpen} onClose={closeModal} title={editing ? t("accounts.editTitle") : t("accounts.addTitle")}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label-field">Kode Akun</label>
+              <label className="label-field">{t("accounts.accountCode")}</label>
               <input
                 className="input-field"
                 value={form.code}
@@ -223,7 +224,7 @@ export default function AkunPage() {
               />
             </div>
             <div>
-              <label className="label-field">Tipe</label>
+              <label className="label-field">{t("accounts.type")}</label>
               <select
                 className="input-field"
                 value={form.type}
@@ -234,14 +235,14 @@ export default function AkunPage() {
               >
                 {TYPE_ORDER.map((type) => (
                   <option key={type} value={type}>
-                    {TYPE_LABELS[type]}
+                    {getAccountTypeLabel(type, lang)}
                   </option>
                 ))}
               </select>
             </div>
           </div>
           <div>
-            <label className="label-field">Nama Akun</label>
+            <label className="label-field">{t("accounts.colName")}</label>
             <input
               className="input-field"
               value={form.name}
@@ -252,7 +253,7 @@ export default function AkunPage() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label-field">Saldo Normal</label>
+              <label className="label-field">{t("accounts.colNormalBalance")}</label>
               <select
                 className="input-field"
                 value={form.normalBalance}
@@ -260,8 +261,8 @@ export default function AkunPage() {
                   setForm((f) => ({ ...f, normalBalance: e.target.value as "DEBIT" | "KREDIT" }))
                 }
               >
-                <option value="DEBIT">Debit</option>
-                <option value="KREDIT">Kredit</option>
+                <option value="DEBIT">{t("common.debit")}</option>
+                <option value="KREDIT">{t("common.credit")}</option>
               </select>
             </div>
             <div className="flex items-end pb-2">
@@ -272,22 +273,22 @@ export default function AkunPage() {
                   onChange={(e) => setForm((f) => ({ ...f, isCashAccount: e.target.checked }))}
                   className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-600"
                 />
-                Akun Kas/Bank
+                {t("accounts.cashBankAccount")}
               </label>
             </div>
           </div>
           <button type="submit" disabled={saving} className="btn-primary w-full">
-            {saving ? "Menyimpan..." : "Simpan"}
+            {saving ? t("common.saving") : t("common.save")}
           </button>
         </form>
       </Modal>
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Hapus akun?"
+        title={t("accounts.deleteConfirmTitle")}
         body={
           deleteTarget
-            ? `Tindakan ini tidak bisa dibatalkan. Akun "${deleteTarget.code} - ${deleteTarget.name}" akan dihapus permanen.`
+            ? t("accounts.deleteConfirmBody", { account: `${deleteTarget.code} - ${deleteTarget.name}` })
             : ""
         }
         loading={deleteAccount.isLoading}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ComponentType } from "react";
 import { Wallet, Pencil, BarChart2, Rocket } from "lucide-react";
 import clsx from "clsx";
+import { useLanguage } from "@/components/LanguageProvider";
 
 interface Tip {
   color: "green" | "blue";
@@ -16,40 +17,32 @@ interface Slide {
   tip?: Tip;
 }
 
-const SLIDES: Slide[] = [
-  {
-    Icon: Wallet,
-    title: "Selamat datang di KantongKu",
-    description:
-      "Aplikasi pencatatan keuangan usaha yang mudah dipakai — tanpa perlu paham akuntansi.",
-  },
-  {
-    Icon: Pencil,
-    title: "Catat pemasukan dan pengeluaran",
-    description:
-      "Setiap ada uang masuk atau keluar, catat di sini. Pilih jenis, kategori, dan nominal — selesai.",
-    tip: {
-      color: "green",
-      text: "Contoh: jual es teh Rp 50.000 — pilih Pemasukan, lalu Penjualan.",
+function useSlides(t: (key: string) => string): Slide[] {
+  return [
+    {
+      Icon: Wallet,
+      title: t("onboarding.slide1Title"),
+      description: t("onboarding.slide1Description"),
     },
-  },
-  {
-    Icon: BarChart2,
-    title: "Laporan keuangan otomatis",
-    description:
-      "KantongKu otomatis menyusun Laporan Laba Rugi, Neraca, dan Arus Kas dari setiap transaksi.",
-    tip: {
-      color: "blue",
-      text: "Laporan ini bisa dicetak dan diserahkan ke bank atau investor.",
+    {
+      Icon: Pencil,
+      title: t("onboarding.slide2Title"),
+      description: t("onboarding.slide2Description"),
+      tip: { color: "green", text: t("onboarding.slide2Tip") },
     },
-  },
-  {
-    Icon: Rocket,
-    title: "Usahamu siap dicatat",
-    description:
-      "Mulai dengan mencatat transaksi pertamamu. Konsisten mencatat berarti keuangan usaha lebih sehat.",
-  },
-];
+    {
+      Icon: BarChart2,
+      title: t("onboarding.slide3Title"),
+      description: t("onboarding.slide3Description"),
+      tip: { color: "blue", text: t("onboarding.slide3Tip") },
+    },
+    {
+      Icon: Rocket,
+      title: t("onboarding.slide4Title"),
+      description: t("onboarding.slide4Description"),
+    },
+  ];
+}
 
 const FOCUSABLE_SELECTOR =
   'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -63,6 +56,8 @@ export interface OnboardingModalProps {
 }
 
 export function OnboardingModal({ open, onClose, onStartTransaction }: OnboardingModalProps) {
+  const { t } = useLanguage();
+  const SLIDES = useSlides(t);
   const [step, setStep] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -135,7 +130,7 @@ export function OnboardingModal({ open, onClose, onStartTransaction }: Onboardin
           onClick={onClose}
           className="absolute right-4 top-4 text-xs text-gray-400 hover:text-gray-600"
         >
-          Lewati
+          {t("onboarding.skip")}
         </button>
 
         <div className="flex flex-col items-center text-center">
@@ -179,14 +174,14 @@ export function OnboardingModal({ open, onClose, onStartTransaction }: Onboardin
                   onClick={onClose}
                   className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50"
                 >
-                  Lihat dashboard dulu
+                  {t("onboarding.viewDashboardFirst")}
                 </button>
                 <button
                   type="button"
                   onClick={onStartTransaction}
                   className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
                 >
-                  Mulai catat transaksi
+                  {t("onboarding.startTransaction")}
                 </button>
               </>
             ) : (
@@ -197,7 +192,7 @@ export function OnboardingModal({ open, onClose, onStartTransaction }: Onboardin
                     onClick={() => setStep((s) => Math.max(s - 1, 0))}
                     className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50"
                   >
-                    Kembali
+                    {t("onboarding.back")}
                   </button>
                 )}
                 <button
@@ -205,7 +200,7 @@ export function OnboardingModal({ open, onClose, onStartTransaction }: Onboardin
                   onClick={() => setStep((s) => Math.min(s + 1, SLIDES.length - 1))}
                   className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
                 >
-                  Lanjut
+                  {t("onboarding.next")}
                 </button>
               </>
             )}

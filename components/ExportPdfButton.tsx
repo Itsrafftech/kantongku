@@ -3,6 +3,7 @@
 import { useState, type RefObject } from "react";
 import toast from "react-hot-toast";
 import { formatDateID } from "@/lib/format";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export function ExportPdfButton({
   targetRef,
@@ -11,6 +12,7 @@ export function ExportPdfButton({
   targetRef: RefObject<HTMLElement>;
   fileName: string;
 }) {
+  const { t } = useLanguage();
   const [exporting, setExporting] = useState(false);
 
   async function handleExport() {
@@ -67,7 +69,7 @@ export function ExportPdfButton({
         pdf.setFontSize(8);
         pdf.setTextColor(140);
         pdf.text(
-          `Dibuat dengan KantongKu — dicetak ${formatDateID(new Date())}`,
+          t("pdf.footer", { date: formatDateID(new Date()) }),
           pageWidth / 2,
           pageHeight - 6,
           { align: "center" },
@@ -79,7 +81,7 @@ export function ExportPdfButton({
 
       pdf.save(`${fileName}.pdf`);
     } catch {
-      toast.error("Gagal membuat PDF");
+      toast.error(t("pdf.exportError"));
     } finally {
       setExporting(false);
     }
@@ -87,7 +89,7 @@ export function ExportPdfButton({
 
   return (
     <button type="button" onClick={handleExport} disabled={exporting} className="btn-secondary">
-      {exporting ? "Membuat PDF..." : "Export PDF"}
+      {exporting ? t("pdf.exporting") : t("pdf.exportPdf")}
     </button>
   );
 }

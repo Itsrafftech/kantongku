@@ -37,8 +37,10 @@ import {
   KAS_ACCOUNT_CODE,
   SIMPLE_INCOME_CATEGORIES,
   SIMPLE_EXPENSE_CATEGORIES,
+  getSimpleCategoryLabel,
 } from "@/lib/coa";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type TxMode = "sederhana" | "jurnal";
 type Jenis = "PEMASUKAN" | "PENGELUARAN";
@@ -75,6 +77,7 @@ function InsightCard({ icon: Icon, tone, children }: { icon: LucideIcon; tone: I
 }
 
 export default function DashboardPage() {
+  const { t, lang } = useLanguage();
   const { activeCompanyId, isLoading: companyLoading } = useActiveCompany();
   const utils = trpc.useContext();
   const [modalOpen, setModalOpen] = useState(false);
@@ -151,29 +154,29 @@ export default function DashboardPage() {
 
   const createEntry = trpc.journal.create.useMutation({
     onSuccess: () => {
-      toast.success("Transaksi berhasil disimpan");
+      toast.success(t("journal.transactionSaved"));
       utils.dashboard.summary.invalidate();
       setModalOpen(false);
       resetForm();
     },
-    onError: (error) => toast.error(error.message || "Gagal menyimpan transaksi"),
+    onError: (error) => toast.error(error.message || t("journal.transactionSaveError")),
   });
 
   const formErrors = useMemo(() => {
     const errors: string[] = [];
-    const descError = getDescriptionError(description);
+    const descError = getDescriptionError(description, t);
     if (descError) errors.push(descError);
-    const dateError = getDateError(date);
+    const dateError = getDateError(date, t);
     if (dateError) errors.push(dateError);
     if (mode === "jurnal") {
-      const linesError = getLinesBalanceError(lines);
+      const linesError = getLinesBalanceError(lines, t);
       if (linesError) errors.push(linesError);
     } else {
-      const nominalError = getNominalError(nominalInput.numericValue);
+      const nominalError = getNominalError(nominalInput.numericValue, t);
       if (nominalError) errors.push(nominalError);
     }
     return errors;
-  }, [description, date, mode, lines, nominalInput.numericValue]);
+  }, [description, date, mode, lines, nominalInput.numericValue, t]);
 
   const insights = useMemo(() => {
     if (!data) return [];
@@ -187,7 +190,7 @@ export default function DashboardPage() {
       tone: labaPositive ? "positive" : "negative",
       text: (
         <>
-          Bulan ini laba bersih{" "}
+          {t("dashboard.insightNetIncomePrefix")}{" "}
           <span className={clsx("font-medium", labaPositive ? "text-green-700" : "text-red-600")}>
             {formatRupiah(data.labaBersihBulanIni)}
           </span>
@@ -202,7 +205,8 @@ export default function DashboardPage() {
         tone: "neutral",
         text: (
           <>
-            Beban terbesar bulan ini: <span className="font-medium text-gray-900">{data.topExpense.name}</span>{" "}
+            {t("dashboard.insightTopExpensePrefix")}{" "}
+            <span className="font-medium text-gray-900">{data.topExpense.name}</span>{" "}
             ({formatRupiah(data.topExpense.amount)})
           </>
         ),
@@ -214,12 +218,12 @@ export default function DashboardPage() {
         key: "incomplete",
         icon: AlertTriangle,
         tone: "warning",
-        text: `Ada ${data.incompleteTransactionCount} transaksi yang perlu dilengkapi`,
+        text: t("dashboard.insightIncomplete", { count: data.incompleteTransactionCount }),
       });
     }
 
     return items;
-  }, [data]);
+  }, [data, t]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -246,7 +250,7 @@ export default function DashboardPage() {
     const kasAccount = accounts?.find((a) => a.code === KAS_ACCOUNT_CODE);
     const categoryAccount = accounts?.find((a) => a.code === kategori);
     if (!kasAccount || !categoryAccount) {
-      toast.error("Akun untuk kategori ini belum tersedia. Tambahkan di Daftar Akun.");
+      toast.error(t("journal.accountForCategoryMissing"));
       return;
     }
 
@@ -275,11 +279,11 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500">Ringkasan keuangan usaha Anda</p>
+          <h1 className="text-xl font-semibold text-gray-900">{t("nav.dashboard")}</h1>
+          <p className="text-sm text-gray-500">{t("dashboard.subtitle")}</p>
         </div>
         <button type="button" onClick={() => setModalOpen(true)} className="btn-primary">
-          + Tambah Transaksi
+          {t("journal.addTransaction")}
         </button>
       </div>
 
@@ -291,12 +295,14 @@ export default function DashboardPage() {
         </div>
       ) : data ? (
         <>
-          <p className="text-xs text-gray-400">Ringkasan per {formatDateLongID(new Date())}</p>
+          <p className="text-xs text-gray-400">
+            {t("dashboard.summaryAsOf", { date: formatDateLongID(new Date(), lang) })}
+          </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total Aset" value={data.totalAset} />
-            <StatCard label="Total Utang" value={data.totalUtang} />
-            <StatCard label="Modal" value={data.modal} />
-            <StatCard label="Laba Bersih Bulan Ini" value={data.labaBersihBulanIni} accent />
+            <StatCard label={t("dashboard.totalAsset")} value={data.totalAset} />
+            <StatCard label={t("dashboard.totalLiability")} value={data.totalUtang} />
+            <StatCard label={t("dashboard.equity")} value={data.modal} />
+            <StatCard label={t("dashboard.netIncomeThisMonth")} value={data.labaBersihBulanIni} accent />
           </div>
         </>
       ) : null}
@@ -318,10 +324,10 @@ export default function DashboardPage() {
         </div>
       ) : data ? (
         <>
-          <p className="text-xs text-gray-400">Periode: 6 bulan terakhir</p>
+          <p className="text-xs text-gray-400">{t("dashboard.last6Months")}</p>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="card">
-              <h2 className="mb-4 text-sm font-semibold text-gray-700">Pendapatan vs Beban</h2>
+              <h2 className="mb-4 text-sm font-semibold text-gray-700">{t("dashboard.revenueVsExpense")}</h2>
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={data.revenueVsExpense}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -329,16 +335,16 @@ export default function DashboardPage() {
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={formatChartNumber} width={70} />
                   <Tooltip formatter={(v: number) => formatChartNumber(v)} />
                   <Legend />
-                  <Line type="monotone" dataKey="pendapatan" name="Pendapatan" stroke="#16a34a" strokeWidth={2} />
-                  <Line type="monotone" dataKey="beban" name="Beban" stroke="#ef4444" strokeWidth={2} />
+                  <Line type="monotone" dataKey="pendapatan" name={t("dashboard.revenue")} stroke="#16a34a" strokeWidth={2} />
+                  <Line type="monotone" dataKey="beban" name={t("dashboard.expense")} stroke="#ef4444" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
             <div className="card">
               <h2 className="mb-4 flex items-center gap-1 text-sm font-semibold text-gray-700">
-                Arus Kas Bulanan
-                <InfoTooltip text="Arus Kas menunjukkan pergerakan uang masuk dan keluar dari kas/bank usaha." />
+                {t("dashboard.monthlyCashFlow")}
+                <InfoTooltip text={t("dashboard.cashFlowTooltip")} />
               </h2>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={data.cashFlowMonthly}>
@@ -346,7 +352,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="bulan" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={formatChartNumber} width={70} />
                   <Tooltip formatter={(v: number) => formatChartNumber(v)} />
-                  <Bar dataKey="kasBersih" name="Kas Bersih" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="kasBersih" name={t("dashboard.netCash")} fill="#16a34a" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -356,9 +362,9 @@ export default function DashboardPage() {
 
       <div className="card !p-0">
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-700">5 Transaksi Terakhir</h2>
+          <h2 className="text-sm font-semibold text-gray-700">{t("dashboard.latestTransactions")}</h2>
           <Link href="/jurnal" className="text-xs font-medium text-brand-600 hover:underline">
-            Lihat Semua
+            {t("dashboard.viewAll")}
           </Link>
         </div>
         {loading ? (
@@ -366,7 +372,7 @@ export default function DashboardPage() {
             <TableSkeleton rows={5} />
           </div>
         ) : !data || data.latestEntries.length === 0 ? (
-          <p className="p-4 text-center text-sm text-gray-500">Belum ada transaksi.</p>
+          <p className="p-4 text-center text-sm text-gray-500">{t("dashboard.noTransactions")}</p>
         ) : (
           <table className="w-full text-sm">
             <tbody>
@@ -386,7 +392,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <Modal open={modalOpen} onClose={closeModal} title="Tambah Transaksi Cepat">
+      <Modal open={modalOpen} onClose={closeModal} title={t("journal.quickAddTitle")}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex rounded-lg bg-gray-100 p-1">
             <button
@@ -397,7 +403,7 @@ export default function DashboardPage() {
                 mode === "sederhana" ? "bg-white text-brand-700 shadow-sm" : "text-gray-500",
               )}
             >
-              Mode Sederhana
+              {t("journal.modeSederhana")}
             </button>
             <button
               type="button"
@@ -407,12 +413,12 @@ export default function DashboardPage() {
                 mode === "jurnal" ? "bg-white text-brand-700 shadow-sm" : "text-gray-500",
               )}
             >
-              Mode Jurnal
+              {t("journal.modeJurnal")}
             </button>
           </div>
 
           <div>
-            <label className="label-field">Tanggal</label>
+            <label className="label-field">{t("common.date")}</label>
             <input
               type="date"
               className="input-field"
@@ -422,7 +428,7 @@ export default function DashboardPage() {
             />
           </div>
           <div>
-            <label className="label-field">Deskripsi</label>
+            <label className="label-field">{t("common.description")}</label>
             <input
               className="input-field"
               value={description}
@@ -436,18 +442,18 @@ export default function DashboardPage() {
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label-field">Jenis Transaksi</label>
+                  <label className="label-field">{t("journal.transactionType")}</label>
                   <select
                     className="input-field"
                     value={jenis}
                     onChange={(e) => handleJenisChange(e.target.value as Jenis)}
                   >
-                    <option value="PEMASUKAN">Pemasukan</option>
-                    <option value="PENGELUARAN">Pengeluaran</option>
+                    <option value="PEMASUKAN">{t("journal.income")}</option>
+                    <option value="PENGELUARAN">{t("journal.expense")}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="label-field">Kategori</label>
+                  <label className="label-field">{t("journal.category")}</label>
                   <select
                     className="input-field"
                     value={kategori}
@@ -455,14 +461,14 @@ export default function DashboardPage() {
                   >
                     {simpleCategories.map((c) => (
                       <option key={c.code} value={c.code}>
-                        {c.label}
+                        {getSimpleCategoryLabel(c, lang)}
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="label-field">Nominal (Rp)</label>
+                <label className="label-field">{t("journal.nominalRp")}</label>
                 <input
                   ref={nominalInput.inputRef}
                   type="text"
@@ -490,7 +496,7 @@ export default function DashboardPage() {
           )}
 
           <button type="submit" disabled={submitDisabled} className="btn-primary w-full">
-            {createEntry.isLoading ? "Menyimpan..." : "Simpan Transaksi"}
+            {createEntry.isLoading ? t("common.saving") : t("journal.saveTransaction")}
           </button>
         </form>
       </Modal>

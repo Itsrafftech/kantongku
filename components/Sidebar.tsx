@@ -4,23 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import clsx from "clsx";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/jurnal", label: "Jurnal Umum" },
-  { href: "/buku-besar", label: "Buku Besar" },
+  { href: "/dashboard", labelKey: "nav.dashboard" },
+  { href: "/jurnal", labelKey: "nav.generalJournal" },
+  { href: "/buku-besar", labelKey: "nav.generalLedger" },
   {
-    label: "Laporan",
+    labelKey: "nav.reports",
     children: [
-      { href: "/laporan/laba-rugi", label: "Laba Rugi" },
-      { href: "/laporan/neraca", label: "Neraca" },
-      { href: "/laporan/arus-kas", label: "Arus Kas" },
-      { href: "/laporan/perubahan-modal", label: "Perubahan Modal" },
-      { href: "/laporan/neraca-saldo-penutupan", label: "Neraca Saldo Penutupan" },
+      { href: "/laporan/laba-rugi", labelKey: "nav.incomeStatement" },
+      { href: "/laporan/neraca", labelKey: "nav.balanceSheet" },
+      { href: "/laporan/arus-kas", labelKey: "nav.cashFlow" },
+      { href: "/laporan/perubahan-modal", labelKey: "nav.changesInEquity" },
+      { href: "/laporan/neraca-saldo-penutupan", labelKey: "nav.postClosingTrialBalance" },
     ],
   },
-  { href: "/akun", label: "Daftar Akun" },
-  { href: "/pengaturan", label: "Pengaturan" },
+  { href: "/akun", labelKey: "nav.chartOfAccounts" },
+  { href: "/pengaturan", labelKey: "nav.settings" },
 ];
 
 function NavLink({ href, label }: { href: string; label: string }) {
@@ -43,32 +44,33 @@ function NavLink({ href, label }: { href: string; label: string }) {
 
 function SidebarContent() {
   const pathname = usePathname();
+  const { t } = useLanguage();
   const laporanActive = pathname.startsWith("/laporan");
 
   return (
     <nav className="flex h-full flex-col gap-1 p-4">
       <div className="mb-6 px-2">
-        <span className="text-xl font-bold text-brand-600">KantongKu</span>
+        <span className="text-xl font-bold text-brand-600">{t("app.name")}</span>
       </div>
       {NAV_ITEMS.map((item) =>
         item.children ? (
-          <div key={item.label}>
+          <div key={item.labelKey}>
             <div
               className={clsx(
                 "rounded-lg px-3 py-2 text-sm font-medium",
                 laporanActive ? "text-brand-700" : "text-gray-500",
               )}
             >
-              {item.label}
+              {t(item.labelKey)}
             </div>
             <div className="ml-2 flex flex-col gap-1 border-l border-gray-200 pl-2">
               {item.children.map((child) => (
-                <NavLink key={child.href} href={child.href} label={child.label} />
+                <NavLink key={child.href} href={child.href} label={t(child.labelKey)} />
               ))}
             </div>
           </div>
         ) : (
-          <NavLink key={item.href} href={item.href} label={item.label} />
+          <NavLink key={item.href} href={item.href} label={t(item.labelKey)} />
         ),
       )}
     </nav>
@@ -77,6 +79,7 @@ function SidebarContent() {
 
 export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <>
@@ -88,7 +91,7 @@ export function Sidebar() {
         type="button"
         onClick={() => setMobileOpen(true)}
         className="fixed bottom-4 right-4 z-30 rounded-full bg-brand-600 p-3 text-white shadow-lg md:hidden"
-        aria-label="Buka menu"
+        aria-label={t("nav.openMenu")}
       >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />

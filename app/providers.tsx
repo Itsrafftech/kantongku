@@ -7,6 +7,7 @@ import superjson from "superjson";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "react-hot-toast";
 import { trpc } from "@/lib/trpc";
+import { LanguageProvider } from "@/components/LanguageProvider";
 
 function getBaseUrl() {
   if (typeof window !== "undefined") return "";
@@ -31,8 +32,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          {children}
-          <Toaster position="top-right" />
+          <LanguageProvider>
+            {children}
+            <Toaster position="top-right" />
+          </LanguageProvider>
         </QueryClientProvider>
       </trpc.Provider>
     </SessionProvider>

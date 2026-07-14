@@ -9,6 +9,8 @@ import { ReportPrintHeader } from "@/components/ReportPrintHeader";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
 import { InfoTooltip } from "@/components/ui/Tooltip";
 import { formatDateID, formatRupiah } from "@/lib/format";
+import { getDisplayAccountName } from "@/lib/coa";
+import { useLanguage } from "@/components/LanguageProvider";
 import type { CashFlowLine } from "@/lib/reports/arus-kas";
 
 function Row({ label, amount, bold = false }: { label: string; amount: number; bold?: boolean }) {
@@ -21,22 +23,28 @@ function Row({ label, amount, bold = false }: { label: string; amount: number; b
 }
 
 function ActivitySection({ title, lines, total }: { title: string; lines: CashFlowLine[]; total: number }) {
+  const { t, lang } = useLanguage();
   return (
     <div>
       <h4 className="mb-1 text-sm font-semibold text-gray-500">{title}</h4>
       {lines.length === 0 ? (
-        <p className="py-1 text-sm text-gray-400">Tidak ada aktivitas</p>
+        <p className="py-1 text-sm text-gray-400">{t("reports.arusKas.noActivity")}</p>
       ) : (
         lines.map((line, i) => (
-          <Row key={`${line.entryId}-${i}`} label={`${line.description} (${line.accountName})`} amount={line.amount} />
+          <Row
+            key={`${line.entryId}-${i}`}
+            label={`${line.description} (${getDisplayAccountName({ code: line.accountCode, name: line.accountName }, lang)})`}
+            amount={line.amount}
+          />
         ))
       )}
-      <Row label={`Kas Bersih dari ${title}`} amount={total} bold />
+      <Row label={`${t("reports.arusKas.netCashFromPrefix")} ${title}`} amount={total} bold />
     </div>
   );
 }
 
 export default function ArusKasPage() {
+  const { t } = useLanguage();
   const { activeCompanyId, activeCompany, isLoading: companyLoading } = useActiveCompany();
   const [range, setRange] = useState<DateRangeValue>(PRESETS.bulanan());
   const printRef = useRef<HTMLDivElement>(null);
@@ -46,17 +54,20 @@ export default function ArusKasPage() {
     { enabled: !!activeCompanyId },
   );
 
-  const periodLabel = `Periode ${formatDateID(range.startDate)} - ${formatDateID(range.endDate)}`;
+  const periodLabel = t("reports.periodLabel", {
+    from: formatDateID(range.startDate),
+    to: formatDateID(range.endDate),
+  });
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-1 text-xl font-semibold text-gray-900">
-            Laporan Arus Kas
-            <InfoTooltip text="Arus Kas menunjukkan pergerakan uang masuk dan keluar dari kas/bank usaha." />
+            {t("reports.arusKas.title")}
+            <InfoTooltip text={t("dashboard.cashFlowTooltip")} />
           </h1>
-          <p className="text-sm text-gray-500">Aktivitas operasi, investasi, dan pendanaan</p>
+          <p className="text-sm text-gray-500">{t("reports.arusKas.subtitle")}</p>
         </div>
         {report && <ExportPdfButton targetRef={printRef} fileName="arus-kas" />}
       </div>
@@ -70,25 +81,25 @@ export default function ArusKasPage() {
         report.investasi.length === 0 &&
         report.pendanaan.length === 0 ? (
         <div className="card text-center text-sm text-gray-500">
-          Belum ada transaksi kas pada periode ini. Transaksi akan muncul jika akun Kas atau Bank digunakan.
+          {t("reports.arusKas.noCashTransactions")}
         </div>
       ) : report ? (
         <div ref={printRef} className="card mx-auto max-w-2xl bg-white">
           <ReportPrintHeader
             companyName={activeCompany?.name ?? ""}
-            title="Laporan Arus Kas"
+            title={t("reports.arusKas.title")}
             periodLabel={periodLabel}
           />
 
           <div className="space-y-4">
-            <ActivitySection title="Aktivitas Operasi" lines={report.operasi} total={report.totalOperasi} />
-            <ActivitySection title="Aktivitas Investasi" lines={report.investasi} total={report.totalInvestasi} />
-            <ActivitySection title="Aktivitas Pendanaan" lines={report.pendanaan} total={report.totalPendanaan} />
+            <ActivitySection title={t("reports.arusKas.operatingActivities")} lines={report.operasi} total={report.totalOperasi} />
+            <ActivitySection title={t("reports.arusKas.investingActivities")} lines={report.investasi} total={report.totalInvestasi} />
+            <ActivitySection title={t("reports.arusKas.financingActivities")} lines={report.pendanaan} total={report.totalPendanaan} />
 
             <div className="border-t-2 border-gray-300 pt-2">
-              <Row label="Kenaikan (Penurunan) Kas Bersih" amount={report.kenaikanBersihKas} bold />
-              <Row label="Kas dan Setara Kas Awal Periode" amount={report.kasAwal} />
-              <Row label="Kas dan Setara Kas Akhir Periode" amount={report.kasAkhir} bold />
+              <Row label={t("reports.arusKas.netIncreaseDecrease")} amount={report.kenaikanBersihKas} bold />
+              <Row label={t("reports.arusKas.beginningCash")} amount={report.kasAwal} />
+              <Row label={t("reports.arusKas.endingCash")} amount={report.kasAkhir} bold />
             </div>
           </div>
         </div>

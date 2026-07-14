@@ -8,6 +8,8 @@ import { ReportPrintHeader } from "@/components/ReportPrintHeader";
 import { TableSkeleton } from "@/components/LoadingSkeleton";
 import { InfoTooltip } from "@/components/ui/Tooltip";
 import { formatDateID, formatRupiah, toInputDate } from "@/lib/format";
+import { getDisplayAccountName } from "@/lib/coa";
+import { useLanguage } from "@/components/LanguageProvider";
 
 function Row({ label, amount, bold = false }: { label: string; amount: number; bold?: boolean }) {
   return (
@@ -19,6 +21,7 @@ function Row({ label, amount, bold = false }: { label: string; amount: number; b
 }
 
 export default function NeracaPage() {
+  const { t, lang } = useLanguage();
   const { activeCompanyId, activeCompany, isLoading: companyLoading } = useActiveCompany();
   const [asOfDate, setAsOfDate] = useState(toInputDate(new Date()));
   const printRef = useRef<HTMLDivElement>(null);
@@ -32,15 +35,15 @@ export default function NeracaPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Neraca</h1>
-          <p className="text-sm text-gray-500">Posisi keuangan pada suatu tanggal</p>
+          <h1 className="text-xl font-semibold text-gray-900">{t("reports.neraca.title")}</h1>
+          <p className="text-sm text-gray-500">{t("reports.neraca.subtitle")}</p>
         </div>
         {report && <ExportPdfButton targetRef={printRef} fileName="neraca" />}
       </div>
 
       <div className="card flex items-end gap-3">
         <div>
-          <label className="label-field">Per Tanggal</label>
+          <label className="label-field">{t("reports.neraca.asOfDate")}</label>
           <input
             type="date"
             className="input-field"
@@ -56,75 +59,75 @@ export default function NeracaPage() {
         <div ref={printRef} className="card mx-auto max-w-3xl bg-white">
           <ReportPrintHeader
             companyName={activeCompany?.name ?? ""}
-            title="Neraca"
-            periodLabel={`Per Tanggal ${formatDateID(report.asOfDate)}`}
+            title={t("reports.neraca.title")}
+            periodLabel={t("reports.asOfDateLabel", { date: formatDateID(report.asOfDate) })}
           />
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-gray-500">ASET</h4>
+              <h4 className="text-sm font-semibold text-gray-500">{t("reports.neraca.assetsHeader")}</h4>
               <div>
-                <h5 className="mb-1 text-xs font-medium uppercase text-gray-400">Aset Lancar</h5>
+                <h5 className="mb-1 text-xs font-medium uppercase text-gray-400">{t("reports.neraca.currentAssets")}</h5>
                 {report.asetLancar.map((item) => (
-                  <Row key={item.account.id} label={item.account.name} amount={item.amount} />
+                  <Row key={item.account.id} label={getDisplayAccountName(item.account, lang)} amount={item.amount} />
                 ))}
-                <Row label="Total Aset Lancar" amount={report.totalAsetLancar} bold />
+                <Row label={t("reports.neraca.totalCurrentAssets")} amount={report.totalAsetLancar} bold />
               </div>
               <div>
-                <h5 className="mb-1 text-xs font-medium uppercase text-gray-400">Aset Tetap</h5>
+                <h5 className="mb-1 text-xs font-medium uppercase text-gray-400">{t("reports.neraca.fixedAssets")}</h5>
                 {report.asetTetap.map((item) => (
-                  <Row key={item.account.id} label={item.account.name} amount={item.amount} />
+                  <Row key={item.account.id} label={getDisplayAccountName(item.account, lang)} amount={item.amount} />
                 ))}
-                <Row label="Total Aset Tetap" amount={report.totalAsetTetap} bold />
+                <Row label={t("reports.neraca.totalFixedAssets")} amount={report.totalAsetTetap} bold />
               </div>
               <div className="border-t-2 border-gray-300 pt-2">
-                <Row label="Total Aset" amount={report.totalAset} bold />
+                <Row label={t("reports.neraca.totalAssets")} amount={report.totalAset} bold />
               </div>
             </div>
 
             <div className="space-y-4">
               <h4 className="flex items-center gap-1 text-sm font-semibold text-gray-500">
-                LIABILITAS & EKUITAS
-                <InfoTooltip text="Ekuitas adalah modal usaha — selisih antara harta dan hutang." />
+                {t("reports.neraca.liabilitiesEquityHeader")}
+                <InfoTooltip text={t("reports.neraca.equityTooltip")} />
               </h4>
               <div>
                 <h5 className="mb-1 text-xs font-medium uppercase text-gray-400">
-                  Liabilitas Jangka Pendek
+                  {t("reports.neraca.currentLiabilities")}
                 </h5>
                 {report.liabilitasJangkaPendek.map((item) => (
-                  <Row key={item.account.id} label={item.account.name} amount={item.amount} />
+                  <Row key={item.account.id} label={getDisplayAccountName(item.account, lang)} amount={item.amount} />
                 ))}
-                <Row label="Total Liabilitas Jangka Pendek" amount={report.totalLiabilitasJangkaPendek} bold />
+                <Row label={t("reports.neraca.totalCurrentLiabilities")} amount={report.totalLiabilitasJangkaPendek} bold />
               </div>
               <div>
                 <h5 className="mb-1 text-xs font-medium uppercase text-gray-400">
-                  Liabilitas Jangka Panjang
+                  {t("reports.neraca.longTermLiabilities")}
                 </h5>
                 {report.liabilitasJangkaPanjang.map((item) => (
-                  <Row key={item.account.id} label={item.account.name} amount={item.amount} />
+                  <Row key={item.account.id} label={getDisplayAccountName(item.account, lang)} amount={item.amount} />
                 ))}
-                <Row label="Total Liabilitas Jangka Panjang" amount={report.totalLiabilitasJangkaPanjang} bold />
+                <Row label={t("reports.neraca.totalLongTermLiabilities")} amount={report.totalLiabilitasJangkaPanjang} bold />
               </div>
-              <Row label="Total Liabilitas" amount={report.totalLiabilitas} bold />
+              <Row label={t("reports.neraca.totalLiabilities")} amount={report.totalLiabilitas} bold />
 
               <div>
-                <h5 className="mb-1 text-xs font-medium uppercase text-gray-400">Ekuitas</h5>
+                <h5 className="mb-1 text-xs font-medium uppercase text-gray-400">{t("reports.neraca.equitySection")}</h5>
                 {report.ekuitas.map((item) => (
-                  <Row key={item.account.id} label={item.account.name} amount={item.amount} />
+                  <Row key={item.account.id} label={getDisplayAccountName(item.account, lang)} amount={item.amount} />
                 ))}
-                <Row label="Laba (Rugi) Tahun Berjalan" amount={report.labaTahunBerjalan} />
-                <Row label="Total Ekuitas" amount={report.totalEkuitas} bold />
+                <Row label={t("reports.neraca.currentYearProfitLoss")} amount={report.labaTahunBerjalan} />
+                <Row label={t("reports.neraca.totalEquity")} amount={report.totalEkuitas} bold />
               </div>
 
               <div className="border-t-2 border-gray-300 pt-2">
-                <Row label="Total Liabilitas & Ekuitas" amount={report.totalLiabilitasDanEkuitas} bold />
+                <Row label={t("reports.neraca.totalLiabilitiesEquity")} amount={report.totalLiabilitasDanEkuitas} bold />
               </div>
             </div>
           </div>
 
           {!report.isBalanced && (
             <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-center text-xs text-red-600">
-              Peringatan: Total Aset tidak sama dengan Total Liabilitas + Ekuitas
+              {t("reports.neraca.imbalanceWarning")}
             </p>
           )}
         </div>

@@ -4,10 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { useActiveCompany } from "@/components/ActiveCompanyProvider";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export function CompanySwitcher() {
   const { companies, activeCompany, setActiveCompanyId, isLoading } = useActiveCompany();
   const [open, setOpen] = useState(false);
+  const { t } = useLanguage();
 
   if (isLoading) {
     return <div className="h-9 w-40 animate-pulse rounded-lg bg-gray-100" />;
@@ -21,7 +23,7 @@ export function CompanySwitcher() {
         className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
       >
         <span className="max-w-[10rem] truncate">
-          {activeCompany?.name ?? "Pilih Perusahaan"}
+          {activeCompany?.name ?? t("common.selectCompany")}
         </span>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
           <path strokeLinecap="round" strokeLinejoin="round" d="m19 9-7 7-7-7" />
@@ -56,7 +58,7 @@ export function CompanySwitcher() {
               onClick={() => setOpen(false)}
               className="block px-3 py-2 text-sm text-brand-600 hover:bg-gray-50"
             >
-              + Tambah Perusahaan
+              + {t("common.addCompany")}
             </Link>
           </div>
         </>

@@ -6,9 +6,11 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import toast from "react-hot-toast";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,16 +24,16 @@ export default function RegisterPage() {
         redirect: false,
       });
       if (result?.error) {
-        toast.success("Akun berhasil dibuat, silakan masuk");
+        toast.success(t("auth.registerSuccessLoginRequired"));
         router.push("/login");
         return;
       }
-      toast.success("Akun berhasil dibuat");
+      toast.success(t("auth.registerSuccess"));
       router.push("/dashboard");
       router.refresh();
     },
     onError: (error) => {
-      toast.error(error.message || "Gagal mendaftar");
+      toast.error(error.message || t("auth.registerError"));
     },
   });
 
@@ -42,32 +44,32 @@ export default function RegisterPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-lg font-semibold text-gray-900">Buat akun baru</h1>
+      <h1 className="mb-6 text-lg font-semibold text-gray-900">{t("auth.registerTitle")}</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="label-field" htmlFor="name">Nama Lengkap</label>
+          <label className="label-field" htmlFor="name">{t("auth.fullName")}</label>
           <input
             id="name"
             required
             className="input-field"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Nama Anda"
+            placeholder={t("auth.namePlaceholder")}
           />
         </div>
         <div>
-          <label className="label-field" htmlFor="companyName">Nama Usaha</label>
+          <label className="label-field" htmlFor="companyName">{t("auth.businessName")}</label>
           <input
             id="companyName"
             required
             className="input-field"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
-            placeholder="Toko Maju Jaya"
+            placeholder={t("auth.businessNamePlaceholder")}
           />
         </div>
         <div>
-          <label className="label-field" htmlFor="email">Email</label>
+          <label className="label-field" htmlFor="email">{t("auth.email")}</label>
           <input
             id="email"
             type="email"
@@ -79,7 +81,7 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <label className="label-field" htmlFor="password">Kata Sandi</label>
+          <label className="label-field" htmlFor="password">{t("auth.password")}</label>
           <input
             id="password"
             type="password"
@@ -88,18 +90,18 @@ export default function RegisterPage() {
             className="input-field"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Minimal 6 karakter"
+            placeholder={t("auth.passwordMinPlaceholder")}
           />
         </div>
         <button type="submit" disabled={register.isLoading} className="btn-primary w-full">
-          {register.isLoading ? "Memproses..." : "Daftar"}
+          {register.isLoading ? t("common.processing") : t("auth.register")}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-gray-500">
-        Sudah punya akun?{" "}
+        {t("auth.haveAccount")}{" "}
         <Link href="/login" className="font-medium text-brand-600 hover:underline">
-          Masuk di sini
+          {t("auth.loginHere")}
         </Link>
       </p>
     </div>

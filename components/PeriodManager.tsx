@@ -8,10 +8,12 @@ import { CardSkeleton } from "@/components/LoadingSkeleton";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PeriodStatusBadge } from "@/components/PeriodStatusBadge";
 import { formatDateID, toInputDate } from "@/lib/format";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type Period = RouterOutputs["period"]["list"][number];
 
 export function PeriodManager() {
+  const { t } = useLanguage();
   const { activeCompanyId, isLoading: companyLoading } = useActiveCompany();
   const utils = trpc.useContext();
   const [form, setForm] = useState({
@@ -28,22 +30,22 @@ export function PeriodManager() {
 
   const createPeriod = trpc.period.create.useMutation({
     onSuccess: () => {
-      toast.success("Periode berhasil dibuat");
+      toast.success(t("settings.periodCreateSuccess"));
       utils.period.list.invalidate();
       setForm((f) => ({ ...f, name: "" }));
     },
-    onError: (error) => toast.error(error.message || "Gagal membuat periode"),
+    onError: (error) => toast.error(error.message || t("settings.periodCreateError")),
   });
 
   const closePeriod = trpc.period.close.useMutation({
     onSuccess: () => {
-      toast.success("Periode berhasil ditutup, jurnal penutup telah dibuat");
+      toast.success(t("settings.periodCloseSuccess"));
       utils.period.list.invalidate();
       utils.journal.list.invalidate();
       utils.account.list.invalidate();
       setClosingTarget(null);
     },
-    onError: (error) => toast.error(error.message || "Gagal menutup periode"),
+    onError: (error) => toast.error(error.message || t("settings.periodCloseError")),
   });
 
   function handleCreate(e: FormEvent) {
@@ -67,8 +69,8 @@ export function PeriodManager() {
   return (
     <div className="card space-y-4">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">Periode Akuntansi</h2>
-        <p className="text-sm text-gray-500">Kelola periode dan tutup periode akhir tahun buku</p>
+        <h2 className="text-base font-semibold text-gray-900">{t("settings.accountingPeriod")}</h2>
+        <p className="text-sm text-gray-500">{t("settings.periodSubtitle")}</p>
       </div>
 
       {periods && periods.length > 0 && (
@@ -90,7 +92,7 @@ export function PeriodManager() {
                     disabled={closePeriod.isLoading}
                     className="text-xs font-medium text-red-500 hover:underline"
                   >
-                    Tutup Periode
+                    {t("settings.closePeriod")}
                   </button>
                 )}
               </div>
@@ -100,9 +102,9 @@ export function PeriodManager() {
       )}
 
       <form onSubmit={handleCreate} className="space-y-3 border-t border-gray-100 pt-4">
-        <p className="text-xs font-medium uppercase text-gray-400">Buat Periode Baru</p>
+        <p className="text-xs font-medium uppercase text-gray-400">{t("settings.newPeriod")}</p>
         <div>
-          <label className="label-field">Nama Periode</label>
+          <label className="label-field">{t("settings.periodName")}</label>
           <input
             className="input-field"
             value={form.name}
@@ -113,7 +115,7 @@ export function PeriodManager() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label-field">Mulai</label>
+            <label className="label-field">{t("settings.startDateLabel")}</label>
             <input
               type="date"
               className="input-field"
@@ -122,7 +124,7 @@ export function PeriodManager() {
             />
           </div>
           <div>
-            <label className="label-field">Selesai</label>
+            <label className="label-field">{t("settings.endDateLabel")}</label>
             <input
               type="date"
               className="input-field"
@@ -132,15 +134,15 @@ export function PeriodManager() {
           </div>
         </div>
         <button type="submit" disabled={createPeriod.isLoading} className="btn-secondary">
-          {createPeriod.isLoading ? "Membuat..." : "Buat Periode"}
+          {createPeriod.isLoading ? t("settings.creating") : t("settings.createPeriod")}
         </button>
       </form>
 
       <ConfirmDialog
         open={!!closingTarget}
-        title={`Tutup periode ${closingTarget?.name ?? ""}?`}
-        body="Setelah ditutup, akun Pendapatan, Beban, HPP, dan Prive akan direset ke nol dan saldonya dipindahkan ke Modal. Transaksi baru tidak bisa dicatat pada periode ini. Tindakan ini tidak bisa dibatalkan."
-        confirmLabel="Ya, tutup periode"
+        title={t("settings.closePeriodConfirmTitle", { name: closingTarget?.name ?? "" })}
+        body={t("settings.closePeriodConfirmBody")}
+        confirmLabel={t("settings.confirmClosePeriod")}
         loading={closePeriod.isLoading}
         onConfirm={confirmClose}
         onCancel={() => setClosingTarget(null)}

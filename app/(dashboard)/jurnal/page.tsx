@@ -16,6 +16,8 @@ import {
 import { formatDateID, formatRupiah, toInputDate } from "@/lib/format";
 import { parseRupiah } from "@/lib/utils/currency";
 import { getDescriptionError, getDateError } from "@/lib/validation/transactionForm";
+import { getDisplayAccountName } from "@/lib/coa";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type JournalEntry = RouterOutputs["journal"]["list"][number];
 
@@ -35,6 +37,7 @@ function isEntryBalanced(entry: JournalEntry) {
 }
 
 export default function JurnalPage() {
+  const { t, lang } = useLanguage();
   const { activeCompanyId, isLoading: companyLoading } = useActiveCompany();
   const utils = trpc.useContext();
 
@@ -65,20 +68,20 @@ export default function JurnalPage() {
 
   const createEntry = trpc.journal.create.useMutation({
     onSuccess: () => {
-      toast.success("Jurnal berhasil disimpan");
+      toast.success(t("journal.createSuccess"));
       utils.journal.list.invalidate();
       closeModal();
     },
-    onError: (error) => toast.error(error.message || "Gagal menyimpan jurnal"),
+    onError: (error) => toast.error(error.message || t("journal.createError")),
   });
 
   const deleteEntry = trpc.journal.delete.useMutation({
     onSuccess: () => {
-      toast.success("Jurnal berhasil dihapus");
+      toast.success(t("journal.deleteSuccess"));
       utils.journal.list.invalidate();
       setDeleteTarget(null);
     },
-    onError: (error) => toast.error(error.message || "Gagal menghapus jurnal"),
+    onError: (error) => toast.error(error.message || t("journal.deleteError")),
   });
 
   function closeModal() {
@@ -91,14 +94,14 @@ export default function JurnalPage() {
 
   const formErrors = useMemo(() => {
     const errors: string[] = [];
-    const descError = getDescriptionError(description);
+    const descError = getDescriptionError(description, t);
     if (descError) errors.push(descError);
-    const dateError = getDateError(date);
+    const dateError = getDateError(date, t);
     if (dateError) errors.push(dateError);
-    const linesError = getLinesBalanceError(lines);
+    const linesError = getLinesBalanceError(lines, t);
     if (linesError) errors.push(linesError);
     return errors;
-  }, [description, date, lines]);
+  }, [description, date, lines, t]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -131,17 +134,17 @@ export default function JurnalPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Jurnal Umum</h1>
-          <p className="text-sm text-gray-500">Pencatatan transaksi double-entry</p>
+          <h1 className="text-xl font-semibold text-gray-900">{t("journal.pageTitle")}</h1>
+          <p className="text-sm text-gray-500">{t("journal.pageSubtitle")}</p>
         </div>
         <button type="button" onClick={() => setModalOpen(true)} className="btn-primary">
-          + Tambah Jurnal
+          {t("journal.addEntry")}
         </button>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 card">
         <div>
-          <label className="label-field">Dari Tanggal</label>
+          <label className="label-field">{t("journal.fromDate")}</label>
           <input
             type="date"
             className="input-field"
@@ -150,7 +153,7 @@ export default function JurnalPage() {
           />
         </div>
         <div>
-          <label className="label-field">Sampai Tanggal</label>
+          <label className="label-field">{t("journal.toDate")}</label>
           <input
             type="date"
             className="input-field"
@@ -164,18 +167,18 @@ export default function JurnalPage() {
         <TableSkeleton rows={6} />
       ) : !entries || entries.length === 0 ? (
         <div className="card text-center text-sm text-gray-500">
-          Belum ada transaksi. Klik Tambah Jurnal untuk mulai mencatat.
+          {t("journal.empty")}
         </div>
       ) : (
         <div className="card overflow-x-auto !p-0">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-left text-xs uppercase text-gray-400">
-                <th className="px-4 py-2.5 font-medium">Tanggal</th>
-                <th className="px-4 py-2.5 font-medium">Deskripsi</th>
-                <th className="px-4 py-2.5 font-medium">Referensi</th>
-                <th className="px-4 py-2.5 font-medium text-right">Jumlah</th>
-                <th className="px-4 py-2.5 font-medium text-right">Aksi</th>
+                <th className="px-4 py-2.5 font-medium">{t("common.date")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("common.description")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("common.reference")}</th>
+                <th className="px-4 py-2.5 font-medium text-right">{t("common.amount")}</th>
+                <th className="px-4 py-2.5 font-medium text-right">{t("common.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -191,21 +194,21 @@ export default function JurnalPage() {
                         <span>{entry.description}</span>
                         {balanced ? (
                           <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-                            Seimbang
+                            {t("common.balanced")}
                           </span>
                         ) : (
                           <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">
-                            Tidak seimbang
+                            {t("journal.entryNotBalanced")}
                           </span>
                         )}
                       </div>
                       <div className="mt-1 space-y-0.5 text-xs text-gray-400">
                         {entry.lines.map((line) => (
                           <div key={line.id}>
-                            {line.account.code} {line.account.name} —{" "}
+                            {line.account.code} {getDisplayAccountName(line.account, lang)} —{" "}
                             {Number(line.debit) > 0
-                              ? `Debit ${formatRupiah(Number(line.debit))}`
-                              : `Kredit ${formatRupiah(Number(line.credit))}`}
+                              ? `${t("common.debit")} ${formatRupiah(Number(line.debit))}`
+                              : `${t("common.credit")} ${formatRupiah(Number(line.credit))}`}
                           </div>
                         ))}
                       </div>
@@ -216,14 +219,14 @@ export default function JurnalPage() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-right">
                       {entry.isSystemGenerated ? (
-                        <span className="text-xs text-gray-400">Jurnal Penutup</span>
+                        <span className="text-xs text-gray-400">{t("journal.closingEntryLabel")}</span>
                       ) : (
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(entry)}
                           className="text-red-500 hover:underline"
                         >
-                          Hapus
+                          {t("common.delete")}
                         </button>
                       )}
                     </td>
@@ -235,11 +238,11 @@ export default function JurnalPage() {
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={closeModal} title="Tambah Jurnal">
+      <Modal open={modalOpen} onClose={closeModal} title={t("journal.addTitle")}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="label-field">Tanggal</label>
+              <label className="label-field">{t("common.date")}</label>
               <input
                 type="date"
                 className="input-field"
@@ -249,7 +252,7 @@ export default function JurnalPage() {
               />
             </div>
             <div>
-              <label className="label-field">No. Referensi (opsional)</label>
+              <label className="label-field">{t("journal.referenceOptional")}</label>
               <input
                 className="input-field"
                 value={reference}
@@ -259,7 +262,7 @@ export default function JurnalPage() {
             </div>
           </div>
           <div>
-            <label className="label-field">Deskripsi</label>
+            <label className="label-field">{t("common.description")}</label>
             <input
               className="input-field"
               value={description}
@@ -285,19 +288,15 @@ export default function JurnalPage() {
             disabled={createEntry.isLoading || formErrors.length > 0}
             className="btn-primary w-full"
           >
-            {createEntry.isLoading ? "Menyimpan..." : "Simpan Jurnal"}
+            {createEntry.isLoading ? t("common.saving") : t("journal.saveJournal")}
           </button>
         </form>
       </Modal>
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Hapus jurnal?"
-        body={
-          deleteTarget
-            ? `Tindakan ini tidak bisa dibatalkan. "${deleteTarget.description}" akan dihapus permanen.`
-            : ""
-        }
+        title={t("journal.deleteConfirmTitle")}
+        body={deleteTarget ? t("journal.deleteConfirmBody", { description: deleteTarget.description }) : ""}
         loading={deleteEntry.isLoading}
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}

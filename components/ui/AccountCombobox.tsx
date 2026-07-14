@@ -3,7 +3,8 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type FocusEvent } from "react";
 import type { AccountType } from "@prisma/client";
 import clsx from "clsx";
-import { ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_ORDER } from "@/lib/coa";
+import { ACCOUNT_TYPE_ORDER, getAccountTypeLabel, getDisplayAccountName } from "@/lib/coa";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export interface AccountComboboxOption {
   id: string;
@@ -12,8 +13,8 @@ export interface AccountComboboxOption {
   type: AccountType;
 }
 
-function optionLabel(account: AccountComboboxOption) {
-  return `${account.code} - ${account.name}`;
+function optionLabel(account: AccountComboboxOption, lang: "id" | "en") {
+  return `${account.code} - ${getDisplayAccountName(account, lang)}`;
 }
 
 /**
@@ -26,7 +27,7 @@ export function AccountCombobox({
   accounts,
   value,
   onChange,
-  placeholder = "Pilih akun...",
+  placeholder,
   className,
   required = false,
   disabled = false,
@@ -39,6 +40,8 @@ export function AccountCombobox({
   required?: boolean;
   disabled?: boolean;
 }) {
+  const { t, lang } = useLanguage();
+  const effectivePlaceholder = placeholder ?? t("journal.selectAccount");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -120,7 +123,7 @@ export function AccountCombobox({
     }
   }
 
-  const displayValue = open ? query : selected ? optionLabel(selected) : "";
+  const displayValue = open ? query : selected ? optionLabel(selected, lang) : "";
 
   return (
     <div ref={containerRef} onBlur={handleContainerBlur} className="relative">
@@ -144,7 +147,7 @@ export function AccountCombobox({
         disabled={disabled}
         className={clsx(className, disabled && "cursor-not-allowed opacity-60")}
         value={displayValue}
-        placeholder={placeholder}
+        placeholder={effectivePlaceholder}
         onFocus={openDropdown}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -159,12 +162,12 @@ export function AccountCombobox({
           className="absolute z-30 mt-1 max-h-64 w-full min-w-[220px] overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
         >
           {flatOptions.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-gray-400">Akun tidak ditemukan</p>
+            <p className="px-3 py-2 text-sm text-gray-400">{t("journal.accountNotFound")}</p>
           ) : (
             groups.map((group) => (
-              <div key={group.type} role="group" aria-label={ACCOUNT_TYPE_LABELS[group.type]}>
+              <div key={group.type} role="group" aria-label={getAccountTypeLabel(group.type, lang)}>
                 <p className="px-3 pb-1 pt-2 text-xs font-medium uppercase text-gray-400">
-                  {ACCOUNT_TYPE_LABELS[group.type]}
+                  {getAccountTypeLabel(group.type, lang)}
                 </p>
                 {group.items.map((account) => {
                   const flatIndex = flatOptions.indexOf(account);
@@ -188,7 +191,7 @@ export function AccountCombobox({
                         account.id === value && "font-medium",
                       )}
                     >
-                      {optionLabel(account)}
+                      {optionLabel(account, lang)}
                     </button>
                   );
                 })}

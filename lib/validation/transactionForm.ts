@@ -1,13 +1,15 @@
 /** Shared inline-error copy for transaction forms (Mode Sederhana + Mode Jurnal). */
 
-export function getDescriptionError(description: string): string | null {
-  return description.trim() ? null : "Isi deskripsi transaksi";
+type Translate = (key: string) => string;
+
+export function getDescriptionError(description: string, t: Translate): string | null {
+  return description.trim() ? null : t("validation.descriptionRequired");
 }
 
-export function getDateError(date: string): string | null {
-  return date ? null : "Isi tanggal transaksi";
+export function getDateError(date: string, t: Translate): string | null {
+  return date ? null : t("validation.dateRequired");
 }
 
-export function getNominalError(amount: number): string | null {
-  return amount > 0 ? null : "Nominal harus lebih dari 0";
+export function getNominalError(amount: number, t: Translate): string | null {
+  return amount > 0 ? null : t("validation.nominalPositive");
 }

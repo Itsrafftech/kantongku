@@ -1,6 +1,7 @@
 "use client";
 
 import { toInputDate } from "@/lib/format";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export interface DateRangeValue {
   startDate: string;
@@ -37,6 +38,12 @@ export const PRESETS = {
   tahunan: () => ({ startDate: toInputDate(startOfYear()), endDate: toInputDate(endOfYear()) }),
 };
 
+const PRESET_LABEL_KEYS = {
+  bulanan: "periodFilter.monthly",
+  kuartalan: "periodFilter.quarterly",
+  tahunan: "periodFilter.yearly",
+} as const;
+
 export function PeriodFilter({
   value,
   onChange,
@@ -44,6 +51,7 @@ export function PeriodFilter({
   value: DateRangeValue;
   onChange: (value: DateRangeValue) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="card flex flex-wrap items-end gap-3">
       <div className="flex gap-2">
@@ -52,15 +60,15 @@ export function PeriodFilter({
             key={preset}
             type="button"
             onClick={() => onChange(PRESETS[preset]())}
-            className="btn-secondary !py-1.5 !text-xs capitalize"
+            className="btn-secondary !py-1.5 !text-xs"
           >
-            {preset}
+            {t(PRESET_LABEL_KEYS[preset])}
           </button>
         ))}
       </div>
       <div className="h-8 w-px bg-gray-200" />
       <div>
-        <label className="label-field">Dari</label>
+        <label className="label-field">{t("periodFilter.from")}</label>
         <input
           type="date"
           className="input-field"
@@ -69,7 +77,7 @@ export function PeriodFilter({
         />
       </div>
       <div>
-        <label className="label-field">Sampai</label>
+        <label className="label-field">{t("periodFilter.to")}</label>
         <input
           type="date"
           className="input-field"

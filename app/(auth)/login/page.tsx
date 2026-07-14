@@ -6,6 +6,7 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import toast from "react-hot-toast";
 import { PlayCircle } from "lucide-react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 const DEMO_EMAIL = "demo@kantongku.id";
 const DEMO_PASSWORD = "password123";
@@ -25,6 +26,7 @@ function Spinner() {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,7 +42,7 @@ export default function LoginPage() {
     if (result?.error) {
       return false;
     }
-    toast.success("Berhasil masuk");
+    toast.success(t("auth.loginSuccess"));
     router.push("/dashboard");
     router.refresh();
     return true;
@@ -51,7 +53,7 @@ export default function LoginPage() {
     setLoading(true);
     const ok = await doSignIn(email, password);
     setLoading(false);
-    if (!ok) toast.error("Email atau kata sandi salah");
+    if (!ok) toast.error(t("auth.loginError"));
   }
 
   async function handleDemoLogin() {
@@ -60,15 +62,15 @@ export default function LoginPage() {
     setDemoLoading(true);
     const ok = await doSignIn(DEMO_EMAIL, DEMO_PASSWORD);
     setDemoLoading(false);
-    if (!ok) toast.error("Gagal masuk ke akun demo");
+    if (!ok) toast.error(t("auth.demoLoginError"));
   }
 
   return (
     <div>
-      <h1 className="mb-6 text-lg font-semibold text-gray-900">Masuk ke akun Anda</h1>
+      <h1 className="mb-6 text-lg font-semibold text-gray-900">{t("auth.loginTitle")}</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="label-field" htmlFor="email">Email</label>
+          <label className="label-field" htmlFor="email">{t("auth.email")}</label>
           <input
             id="email"
             type="email"
@@ -80,7 +82,7 @@ export default function LoginPage() {
           />
         </div>
         <div>
-          <label className="label-field" htmlFor="password">Kata Sandi</label>
+          <label className="label-field" htmlFor="password">{t("auth.password")}</label>
           <input
             id="password"
             type="password"
@@ -92,13 +94,13 @@ export default function LoginPage() {
           />
         </div>
         <button type="submit" disabled={loading || demoLoading} className="btn-primary w-full">
-          {loading ? "Memproses..." : "Masuk"}
+          {loading ? t("common.processing") : t("auth.login")}
         </button>
       </form>
 
       <div className="my-4 flex items-center gap-3">
         <div className="h-px flex-1 bg-gray-200" />
-        <span className="text-xs text-gray-400">atau</span>
+        <span className="text-xs text-gray-400">{t("common.or")}</span>
         <div className="h-px flex-1 bg-gray-200" />
       </div>
 
@@ -108,7 +110,7 @@ export default function LoginPage() {
         disabled={loading || demoLoading}
         className="btn-secondary w-full"
       >
-        Masuk dengan Google
+        {t("auth.loginWithGoogle")}
       </button>
 
       <button
@@ -120,23 +122,23 @@ export default function LoginPage() {
         {demoLoading ? (
           <>
             <Spinner />
-            Memproses...
+            {t("common.processing")}
           </>
         ) : (
           <>
             <PlayCircle className="h-4 w-4" />
-            Coba sebagai demo — tanpa daftar
+            {t("auth.tryDemo")}
           </>
         )}
       </button>
       <p className="mt-2 text-center text-xs text-gray-400">
-        Data demo bersifat publik dan dapat berubah sewaktu-waktu.
+        {t("auth.demoDataNotice")}
       </p>
 
       <p className="mt-6 text-center text-sm text-gray-500">
-        Belum punya akun?{" "}
+        {t("auth.noAccount")}{" "}
         <Link href="/register" className="font-medium text-brand-600 hover:underline">
-          Daftar sekarang
+          {t("auth.registerNow")}
         </Link>
       </p>
     </div>

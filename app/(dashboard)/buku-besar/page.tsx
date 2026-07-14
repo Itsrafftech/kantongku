@@ -7,8 +7,10 @@ import { PeriodFilter, PRESETS, type DateRangeValue } from "@/components/PeriodF
 import { TableSkeleton } from "@/components/LoadingSkeleton";
 import { AccountCombobox } from "@/components/ui/AccountCombobox";
 import { formatDateID, formatRupiah } from "@/lib/format";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function BukuBesarPage() {
+  const { t } = useLanguage();
   const { activeCompanyId, isLoading: companyLoading } = useActiveCompany();
   const [range, setRange] = useState<DateRangeValue>(PRESETS.bulanan());
   const [accountId, setAccountId] = useState("");
@@ -31,12 +33,12 @@ export default function BukuBesarPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Buku Besar</h1>
-        <p className="text-sm text-gray-500">Mutasi transaksi per akun</p>
+        <h1 className="text-xl font-semibold text-gray-900">{t("ledger.pageTitle")}</h1>
+        <p className="text-sm text-gray-500">{t("ledger.pageSubtitle")}</p>
       </div>
 
       <div className="card">
-        <label className="label-field">Pilih Akun</label>
+        <label className="label-field">{t("ledger.selectAccount")}</label>
         <div className="max-w-sm">
           <AccountCombobox
             className="input-field"
@@ -52,7 +54,7 @@ export default function BukuBesarPage() {
 
       {!accountId ? (
         <div className="card text-center text-sm text-gray-500">
-          Pilih akun untuk melihat buku besar.
+          {t("ledger.selectAccountPrompt")}
         </div>
       ) : isLoading ? (
         <TableSkeleton rows={6} />
@@ -61,18 +63,18 @@ export default function BukuBesarPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-left text-xs uppercase text-gray-400">
-                <th className="px-4 py-2.5 font-medium">Tanggal</th>
-                <th className="px-4 py-2.5 font-medium">Keterangan</th>
-                <th className="px-4 py-2.5 font-medium">Ref</th>
-                <th className="px-4 py-2.5 font-medium text-right">Debit</th>
-                <th className="px-4 py-2.5 font-medium text-right">Kredit</th>
-                <th className="px-4 py-2.5 font-medium text-right">Saldo</th>
+                <th className="px-4 py-2.5 font-medium">{t("ledger.colDate")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("ledger.colDescription")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("ledger.colRef")}</th>
+                <th className="px-4 py-2.5 font-medium text-right">{t("common.debit")}</th>
+                <th className="px-4 py-2.5 font-medium text-right">{t("common.credit")}</th>
+                <th className="px-4 py-2.5 font-medium text-right">{t("ledger.colBalance")}</th>
               </tr>
             </thead>
             <tbody>
               <tr className="border-b border-gray-50 bg-gray-50/60">
                 <td className="px-4 py-2.5 text-gray-500" colSpan={5}>
-                  Saldo Awal
+                  {t("ledger.openingBalance")}
                 </td>
                 <td className="px-4 py-2.5 text-right font-medium text-gray-900">
                   {formatRupiah(ledger.openingBalance)}
@@ -81,7 +83,7 @@ export default function BukuBesarPage() {
               {ledger.movements.length === 0 ? (
                 <tr>
                   <td className="px-4 py-4 text-center text-gray-400" colSpan={6}>
-                    Tidak ada mutasi. Coba ubah periode atau pilih akun lain.
+                    {t("ledger.noMovements")}
                   </td>
                 </tr>
               ) : (
@@ -106,7 +108,7 @@ export default function BukuBesarPage() {
               )}
               <tr className="bg-gray-50/60">
                 <td className="px-4 py-2.5 text-gray-500" colSpan={5}>
-                  Saldo Akhir
+                  {t("ledger.closingBalance")}
                 </td>
                 <td className="px-4 py-2.5 text-right font-semibold text-gray-900">
                   {formatRupiah(ledger.closingBalance)}

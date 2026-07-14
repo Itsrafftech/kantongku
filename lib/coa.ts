@@ -54,6 +54,20 @@ export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   BEBAN: "Beban Operasional",
 };
 
+const ACCOUNT_TYPE_LABELS_EN: Record<AccountType, string> = {
+  ASET: "Assets",
+  LIABILITAS: "Liabilities",
+  EKUITAS: "Equity",
+  PENDAPATAN: "Revenue",
+  HPP: "Cost of Goods Sold (COGS)",
+  BEBAN: "Operating Expenses",
+};
+
+/** Display-only label for an account type. Never affects the stored enum value. */
+export function getAccountTypeLabel(type: AccountType, lang: "id" | "en"): string {
+  return lang === "en" ? ACCOUNT_TYPE_LABELS_EN[type] : ACCOUNT_TYPE_LABELS[type];
+}
+
 // Report-classification conventions (used by lib/reports builders):
 export const OTHER_INCOME_CODES = ["403"]; // Pendapatan Lain-lain — outside Pendapatan Usaha
 export const OTHER_EXPENSE_CODES = ["609", "610"]; // Beban Bunga Bank & Beban Lain-lain — outside Beban Operasional
@@ -143,23 +157,91 @@ export const DEFAULT_COA: DefaultAccount[] = [
 
 export interface SimpleCategory {
   label: string;
+  labelEn: string;
   code: string;
 }
 
 /** Mode Sederhana categories — Pemasukan side, each mapped to its credited account. */
 export const SIMPLE_INCOME_CATEGORIES: SimpleCategory[] = [
-  { label: "Penjualan", code: "401" },
-  { label: "Pendapatan Jasa", code: "404" },
-  { label: "Pendapatan Lain", code: "403" },
+  { label: "Penjualan", labelEn: "Sales", code: "401" },
+  { label: "Pendapatan Jasa", labelEn: "Service Revenue", code: "404" },
+  { label: "Pendapatan Lain", labelEn: "Other Income", code: "403" },
 ];
 
 /** Mode Sederhana categories — Pengeluaran side, each mapped to its debited account. */
 export const SIMPLE_EXPENSE_CATEGORIES: SimpleCategory[] = [
-  { label: "Pembelian Bahan Baku", code: "501" },
-  { label: "Gaji Karyawan", code: "601" },
-  { label: "Sewa", code: "602" },
-  { label: "Listrik & Air", code: "603" },
-  { label: "Transportasi", code: "606" },
-  { label: "Pemasaran", code: "607" },
-  { label: "Beban Lain", code: "610" },
+  { label: "Pembelian Bahan Baku", labelEn: "Raw Material Purchase", code: "501" },
+  { label: "Gaji Karyawan", labelEn: "Employee Salary", code: "601" },
+  { label: "Sewa", labelEn: "Rent", code: "602" },
+  { label: "Listrik & Air", labelEn: "Utilities", code: "603" },
+  { label: "Transportasi", labelEn: "Transportation", code: "606" },
+  { label: "Pemasaran", labelEn: "Marketing", code: "607" },
+  { label: "Beban Lain", labelEn: "Other Expense", code: "610" },
 ];
+
+/** Display-only label for a Mode Sederhana category. Never affects the stored account code. */
+export function getSimpleCategoryLabel(category: SimpleCategory, lang: "id" | "en"): string {
+  return lang === "en" ? category.labelEn : category.label;
+}
+
+const DEFAULT_ACCOUNT_NAME_ID: Record<string, string> = Object.fromEntries(
+  DEFAULT_COA.map((account) => [account.code, account.name]),
+);
+
+/**
+ * English display names for the seeded default chart of accounts, keyed by
+ * account code. Only used as a display substitution in EN mode — never
+ * written to the database.
+ */
+const DEFAULT_ACCOUNT_NAME_EN: Record<string, string> = {
+  "101": "Cash",
+  "102": "Bank",
+  "103": "Accounts Receivable",
+  "104": "Merchandise Inventory",
+  "105": "Supplies",
+  "106": "Prepaid Rent",
+  "121": "Land",
+  "122": "Building",
+  "123": "Equipment",
+  "124": "Vehicles",
+  "125": "Accumulated Depreciation - Fixed Assets",
+  "201": "Accounts Payable",
+  "202": "Bank Loan Payable",
+  "203": "Tax Payable",
+  "301": "Owner's Equity",
+  [PRIVE_CODE]: "Owner's Withdrawal",
+  [RETAINED_EARNINGS_CODE]: "Retained Earnings",
+  [IKHTISAR_LABA_RUGI_CODE]: "Income Summary",
+  "401": "Sales",
+  "402": "Sales Returns & Allowances",
+  "403": "Other Income",
+  "404": "Service Revenue",
+  "501": "Cost of Goods Sold",
+  "601": "Salary Expense",
+  "602": "Rent Expense",
+  "603": "Utilities, Water & Phone Expense",
+  "604": "Supplies Expense",
+  "605": "Depreciation Expense",
+  "606": "Transportation Expense",
+  "607": "Marketing Expense",
+  "608": "General & Administrative Expense",
+  "609": "Bank Interest Expense",
+  "610": "Other Expense",
+};
+
+/**
+ * Display-only translation for an account name. Only substitutes the name
+ * when it still matches the original seeded default for that code — a
+ * user-renamed default account, or any user-created account, is always
+ * shown exactly as typed. Never writes to the database.
+ */
+export function getDisplayAccountName(
+  account: { code: string; name: string },
+  lang: "id" | "en",
+): string {
+  if (lang === "id") return account.name;
+  const original = DEFAULT_ACCOUNT_NAME_ID[account.code];
+  const translated = DEFAULT_ACCOUNT_NAME_EN[account.code];
+  if (original && translated && account.name === original) return translated;
+  return account.name;
+}

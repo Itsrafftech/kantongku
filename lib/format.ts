@@ -18,9 +18,10 @@ export function formatDateID(value: Date | string): string {
   }).format(date);
 }
 
-export function formatDateLongID(value: Date | string): string {
+/** Long-form date (e.g. "14 Juli 2026" / "14 July 2026"). Defaults to id-ID for unmigrated callers. */
+export function formatDateLongID(value: Date | string, lang: "id" | "en" = "id"): string {
   const date = typeof value === "string" ? new Date(value) : value;
-  return new Intl.DateTimeFormat("id-ID", {
+  return new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "id-ID", {
     day: "2-digit",
     month: "long",
     year: "numeric",

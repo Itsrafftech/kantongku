@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Info } from "lucide-react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 /**
  * Lightweight info tooltip for explaining accounting jargon inline.
@@ -10,6 +11,7 @@ import { Info } from "lucide-react";
  */
 export function InfoTooltip({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <span className="relative inline-flex align-middle">
@@ -21,7 +23,7 @@ export function InfoTooltip({ text }: { text: string }) {
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         className="inline-flex items-center text-gray-400 hover:text-gray-600"
-        aria-label="Penjelasan istilah"
+        aria-label={t("common.termExplanation")}
       >
         <Info size={14} />
       </button>
