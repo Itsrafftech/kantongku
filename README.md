@@ -2,7 +2,7 @@
 
 Aplikasi pembukuan akuntansi untuk UMKM Indonesia, sesuai standar **SAK EMKM** (Standar Akuntansi Keuangan Entitas Mikro, Kecil, dan Menengah).
 
-## Fitur
+## Features
 
 - **Daftar Akun** — chart of accounts standar SAK EMKM (Aset, Liabilitas, Ekuitas, Pendapatan, HPP, Beban), dapat ditambah/diubah/dihapus.
 - **Jurnal Umum** — input transaksi double-entry dengan validasi debit = kredit.
